@@ -1,0 +1,215 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sistema de Gestión</h1>
+        </div>
+        
+        <div id="main-options" class="options">
+            <button class="option-button" onclick="showLoginForm()">Iniciar Sesión</button>
+            <button class="option-button" onclick="showRegisterForm()">Registrarse</button>
+            <button class="option-button" onclick="showAdminLoginForm()">Admin</button>
+        </div>
+        
+        <!-- Formulario de Inicio de Sesión -->
+        <div id="login-form" class="form-container hidden">
+            <h2 class="form-title">Iniciar Sesión</h2>
+            <div class="input-group">
+                <label for="login-username">Usuario:</label>
+                <input type="text" id="login-username" required>
+            </div>
+            <div class="input-group">
+                <label for="login-password">Contraseña:</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button class="submit-button" onclick="loginUser()">Iniciar Sesión</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+
+        <!-- Panel de Usuario -->
+        <div id="user-panel" class="user-panel">
+            <div class="welcome-message" id="user-welcome">Bienvenido, <span id="username-display"></span></div>
+            
+            <div class="user-header">
+                <h2>Salas Disponibles</h2>
+                <button class="user-button" style="background-color: #e74c3c;" onclick="logoutUser()">Cerrar Sesión</button>
+            </div>
+            
+            <!-- Lista de Salas para el Usuario -->
+            <div id="user-rooms-container" class="user-content">
+                <div id="rooms-grid" class="rooms-grid">
+                    <!-- Las salas se añadirán dinámicamente -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulario de Registro -->
+        <div id="register-form" class="form-container hidden">
+            <h2 class="form-title">Registrarse</h2>
+            <div class="input-group">
+                <label for="register-username">Usuario:</label>
+                <input type="text" id="register-username" required>
+            </div>
+            <div class="input-group">
+                <label for="register-password">Contraseña:</label>
+                <input type="password" id="register-password" required>
+            </div>
+            <div class="input-group">
+                <label for="register-email">Email:</label>
+                <input type="email" id="register-email" required>
+            </div>
+            <button class="submit-button" onclick="registerUser()">Registrarse</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+        
+        <!-- Formulario de Admin Login -->
+        <div id="admin-login-form" class="form-container hidden">
+            <h2 class="form-title">Acceso Administrador</h2>
+            <div class="input-group">
+                <label for="admin-username">Usuario Admin:</label>
+                <input type="text" id="admin-username" required>
+            </div>
+            <div class="input-group">
+                <label for="admin-password">Contraseña Admin:</label>
+                <input type="password" id="admin-password" required>
+            </div>
+            <button class="submit-button" onclick="loginAdmin()">Acceder</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+        
+        <!-- Base de Datos -->
+        <div id="database-section" class="database-section">
+            <h2 class="form-title">Base de Datos</h2>
+            <h3>Usuarios Registrados:</h3>
+            <table id="database-users" class="user-list">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Contraseña</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Los datos se añadirán dinámicamente -->
+                </tbody>
+            </table>
+            
+            <h3>Salas Creadas:</h3>
+            <table id="database-rooms" class="room-list">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre de la Sala</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Los datos se añadirán dinámicamente -->
+                </tbody>
+            </table>
+            <p style="text-align: center; margin-top: 20px;">
+                <button class="admin-button" onclick="closeDatabase()">Volver al Panel de Admin</button>
+            </p>
+        </div>
+        <div id="admin-panel" class="admin-panel">
+            <div class="welcome-message">Bienvenido, Administrador</div>
+            
+            <div class="admin-header">
+                <div>
+                    <button class="admin-button" onclick="showUsersList()">Ver Usuarios</button>
+                    <button class="admin-button" onclick="openCreateRoomModal()">Crear Sala</button>
+                    <button class="admin-button" onclick="showDatabase()">Base de Datos</button>
+                </div>
+                <button class="admin-button" style="background-color: #e74c3c;" onclick="logoutAdmin()">Cerrar Sesión</button>
+            </div>
+            
+            <!-- Lista de Usuarios -->
+            <div id="users-list-section" class="admin-content hidden">
+                <h2>Usuarios Registrados</h2>
+                <table class="user-list">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Los datos se añadirán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Lista de Salas -->
+            <div id="rooms-list-section" class="admin-content visible">
+                <h2>Salas Creadas</h2>
+                <table class="room-list">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre de la Sala</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rooms-table-body">
+                        <!-- Los datos se añadirán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Modal para Crear Sala -->
+        <div id="create-room-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeCreateRoomModal()">&times;</span>
+                <h2>Crear Nueva Sala</h2>
+                <div class="input-group">
+                    <label for="room-name">Nombre de la Sala:</label>
+                    <input type="text" id="room-name" required>
+                </div>
+                <button class="submit-button" onclick="createRoom()">Crear Sala</button>
+            </div>
+        </div>
+        <!-- Modal para Editar Sala -->
+        <div id="edit-room-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeEditRoomModal()">&times;</span>
+                <h2>Editar Sala</h2>
+                <div class="input-group">
+                    <label for="edit-room-name">Nombre de la Sala:</label>
+                    <input type="text" id="edit-room-name" required>
+                </div>
+                <input type="hidden" id="edit-room-id">
+                <button class="submit-button" onclick="updateRoom()">Guardar Cambios</button>
+            </div>
+        </div>
+        <!-- Modal de Confirmación -->
+        <div id="confirm-modal" class="confirm-modal">
+            <div class="confirm-modal-content">
+                <p id="confirm-message">¿Estás seguro de que quieres eliminar este elemento?</p>
+                <div class="confirm-buttons">
+                    <button id="confirm-yes-btn" class="confirm-button confirm-yes">Sí, eliminar</button>
+                    <button id="confirm-no-btn" class="confirm-button confirm-no">Cancelar</button>
+                </div>
+            </div>
+        </div>
+        <!-- Notificación -->
+        <div id="notification" class="notification"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

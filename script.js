@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function() {
     checkActiveSession();
 });
@@ -9,7 +8,44 @@ window.addEventListener('roomsUpdated', function() {
         loadUserRooms();
     }
 });
+// Escuchar cambios en localStorage (para navegadores sin soporte a BroadcastChannel)
+window.addEventListener('storage', function(e) {
+    if (e.key === 'users' || e.key === 'rooms' || e.key === 'lastUpdate') {
+        if (document.getElementById('admin-panel').style.display === 'block') {
+            updateRoomsList();
+            updateUsersList();
+        }
+        if (document.getElementById('database-section').style.display === 'block') {
+            updateDatabaseView();
+        }
+        if (document.getElementById('user-panel').style.display === 'block') {
+            loadUserRooms();
+        }
+    }
+});
 
+// Inicializar BroadcastChannel para comunicación entre pestañas y navegadores
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('system_updates');
+        bc.onmessage = function(event) {
+            if (event.data.type === 'data_update') {
+                if (document.getElementById('admin-panel').style.display === 'block') {
+                    updateRoomsList();
+                    updateUsersList();
+                }
+                if (document.getElementById('database-section').style.display === 'block') {
+                    updateDatabaseView();
+                }
+                if (document.getElementById('user-panel').style.display === 'block') {
+                    loadUserRooms();
+                }
+            }
+        };
+    }
+    
+    checkActiveSession();
+});
 // Inicialización de base de datos local usando localStorage
 if (!localStorage.getItem('users')) {
     localStorage.setItem('users', JSON.stringify([]));
@@ -28,8 +64,8 @@ let deleteType = null;
 let currentUser = null;
 
 function checkActiveSession() {
-    // Verificar si hay una sesión de usuario activa
-    const userSession = localStorage.getItem('currentUserSession');
+    // Primero comprobar si hay una sesión local en esta pestaña
+    const userSession = sessionStorage.getItem('currentUserSession');
     
     if (userSession) {
         // Recuperar datos del usuario
@@ -52,7 +88,7 @@ function checkActiveSession() {
     }
     
     // Verificar si hay una sesión de administrador activa
-    const adminSession = localStorage.getItem('adminSession');
+    const adminSession = sessionStorage.getItem('adminSession');
     
     if (adminSession === 'true') {
         // Mostrar el panel de administrador
@@ -188,8 +224,8 @@ function registerUser() {
     // Establecer el usuario actual
     currentUser = newUser;
     
-    // Guardar sesión en localStorage
-    localStorage.setItem('currentUserSession', JSON.stringify(newUser));
+    // Guardar sesión en sessionStorage (solo para esta pestaña)
+    sessionStorage.setItem('currentUserSession', JSON.stringify(newUser));
     
     // Mostrar el panel de usuario
     document.getElementById('register-form').classList.add('hidden');
@@ -203,6 +239,9 @@ function registerUser() {
     
     showNotification('Usuario registrado exitosamente. ¡Bienvenido!');
     document.getElementById('register-form').reset();
+    
+    // Dispara evento para sincronizar datos entre pestañas
+    dispatchStorageUpdateEvent();
 }
 
 function loginUser() {
@@ -224,8 +263,8 @@ function loginUser() {
         // Guardar el usuario actual
         currentUser = user;
         
-        // Guardar sesión en localStorage
-        localStorage.setItem('currentUserSession', JSON.stringify(user));
+        // Guardar sesión en sessionStorage (solo para esta pestaña)
+        sessionStorage.setItem('currentUserSession', JSON.stringify(user));
         
         // Mostrar el panel de usuario
         document.getElementById('login-form').classList.add('hidden');
@@ -247,8 +286,8 @@ function logoutUser() {
     // Limpiar el usuario actual
     currentUser = null;
     
-    // Eliminar la sesión de localStorage
-    localStorage.removeItem('currentUserSession');
+    // Eliminar la sesión de sessionStorage
+    sessionStorage.removeItem('currentUserSession');
     
     // Ocultar el panel de usuario
     document.getElementById('user-panel').style.display = 'none';
@@ -303,8 +342,8 @@ function loginAdmin() {
     const password = document.getElementById('admin-password').value;
     
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Guardar sesión de administrador
-        localStorage.setItem('adminSession', 'true');
+        // Guardar sesión de administrador en sessionStorage (solo para esta pestaña)
+        sessionStorage.setItem('adminSession', 'true');
         
         document.getElementById('main-options').classList.add('hidden');
         document.getElementById('admin-login-form').classList.add('hidden');
@@ -318,9 +357,10 @@ function loginAdmin() {
     }
 }
 
+
 function logoutAdmin() {
     // Eliminar la sesión de administrador
-    localStorage.removeItem('adminSession');
+    sessionStorage.removeItem('adminSession');
     
     document.getElementById('admin-panel').style.display = 'none';
     showMainOptions();
@@ -347,10 +387,10 @@ function createRoom() {
     
     rooms.push(newRoom);
     localStorage.setItem('rooms', JSON.stringify(rooms));
-
+    
     // Dispara un evento personalizado para notificar a los usuarios
     const event = new CustomEvent('roomsUpdated');
-    window.dispatchEvent(event)
+    window.dispatchEvent(event);
     
     showNotification('Sala creada exitosamente.');
     
@@ -359,6 +399,20 @@ function createRoom() {
     
     // Mostrar la lista de salas actualizada
     showRoomsList();
+    
+    // Notificar a otras pestañas/navegadores
+    dispatchStorageUpdateEvent();
+}
+
+function dispatchStorageUpdateEvent() {
+    // Para navegadores modernos - usar BroadcastChannel
+    if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('system_updates');
+        bc.postMessage({ type: 'data_update' });
+    } else {
+        // Fallback para navegadores que no soportan BroadcastChannel
+        localStorage.setItem('lastUpdate', Date.now().toString());
+    }
 }
 
 // Funciones para actualizar listas
@@ -399,7 +453,6 @@ function updateRoomsList() {
         tableBody.appendChild(row);
     });
 }
-
 
 function updateDatabaseView() {
     const users = JSON.parse(localStorage.getItem('users'));
@@ -495,13 +548,13 @@ function deleteUser(userId) {
     if (document.getElementById('database-section').style.display === 'block') {
         updateDatabaseView();
     }
+    
+    // Notificar a otras pestañas/navegadores
+    dispatchStorageUpdateEvent();
 }
 
 function deleteRoom(roomId) {
     let rooms = JSON.parse(localStorage.getItem('rooms'));
-
-    const event = new CustomEvent('roomsUpdated');
-    window.dispatchEvent(event);
     
     // Filtrar para eliminar la sala
     rooms = rooms.filter(room => room.id !== roomId);
@@ -519,6 +572,13 @@ function deleteRoom(roomId) {
     if (document.getElementById('database-section').style.display === 'block') {
         updateDatabaseView();
     }
+    
+    // Notificar a otras pestañas/navegadores
+    const event = new CustomEvent('roomsUpdated');
+    window.dispatchEvent(event);
+    
+    // Notificar a otras pestañas/navegadores
+    dispatchStorageUpdateEvent();
 }
 function openEditRoomModal(roomId) {
     // Obtener salas
@@ -554,9 +614,6 @@ function updateRoom() {
     
     // Obtener salas actuales
     let rooms = JSON.parse(localStorage.getItem('rooms'));
-
-    const event = new CustomEvent('roomsUpdated');
-    window.dispatchEvent(event);
     
     // Encontrar y actualizar la sala
     rooms = rooms.map(room => {
@@ -569,6 +626,10 @@ function updateRoom() {
     // Guardar cambios
     localStorage.setItem('rooms', JSON.stringify(rooms));
     
+    // Dispara un evento personalizado para notificar a los usuarios
+    const event = new CustomEvent('roomsUpdated');
+    window.dispatchEvent(event);
+    
     showNotification('Sala actualizada exitosamente.');
     
     // Cerrar modal
@@ -579,8 +640,7 @@ function updateRoom() {
     if (document.getElementById('database-section').style.display === 'block') {
         updateDatabaseView();
     }
+    
+    // Notificar a otras pestañas/navegadores
+    dispatchStorageUpdateEvent();
 }
-
-
-
-

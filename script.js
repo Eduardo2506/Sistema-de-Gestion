@@ -13,6 +13,7 @@ const firebaseConfig = {
   // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
+  const auth = firebase.auth();
   
   // Variables globales
   let elementToDeleteId = null;
@@ -43,7 +44,21 @@ const firebaseConfig = {
           database.ref('rooms').set([]);
       }
   }
-  
+ // Escuchar cambios en el estado de autenticación
+firebase.auth().onAuthStateChanged(async (user) => {
+    if (user) {
+        // Usuario está autenticado
+        console.log("Usuario autenticado:", user.email);
+        
+        // Si el correo no está verificado y estamos en la vista principal
+        if (!user.emailVerified && document.getElementById('main-options').classList.contains('visible')) {
+            showVerificationForm(user.email);
+        }
+    } else {
+        // Usuario no está autenticado
+        console.log("Usuario no autenticado");
+    }
+}); 
   // Escuchar cambios en la base de datos
   database.ref().on('value', (snapshot) => {
       if (document.getElementById('admin-panel').style.display === 'block') {
@@ -213,109 +228,198 @@ const firebaseConfig = {
   
   // Funciones de registro e inicio de sesión
   async function registerUser() {
-      const username = document.getElementById('register-username').value;
-      const password = document.getElementById('register-password').value;
-      const email = document.getElementById('register-email').value;
-      
-      if (!username || !password || !email) {
-          showNotification('Por favor, completa todos los campos.', '#e74c3c');
-          return;
-      }
-      
-      // Obtener usuarios actuales
-      const users = await getUsers();
-      
-      // Verificar si el usuario ya existe
-      if (users.some(user => user.username === username)) {
-          showNotification('Este nombre de usuario ya está en uso.', '#e74c3c');
-          return;
-      }
-      
-      // Agregar nuevo usuario
-      const newUser = {
-          id: users.length + 1,
-          username: username,
-          password: password,
-          email: email
-      };
-      
-      users.push(newUser);
-      await saveUsers(users);
-      
-      // Establecer el usuario actual
-      currentUser = newUser;
-      
-      // Guardar sesión en sessionStorage (solo para esta pestaña)
-      sessionStorage.setItem('currentUserSession', JSON.stringify(newUser));
-      
-      // Mostrar el panel de usuario
-      document.getElementById('register-form').classList.add('hidden');
-      document.getElementById('user-panel').style.display = 'block';
-      
-      // Mostrar el nombre de usuario
-      document.getElementById('username-display').textContent = username;
-      
-      // Cargar las salas disponibles
-      loadUserRooms();
-      
-      showNotification('Usuario registrado exitosamente. ¡Bienvenido!');
-      document.getElementById('register-form').reset();
-  }
+    const username = document.getElementById('register-username').value;
+    const password = document.getElementById('register-password').value;
+    const email = document.getElementById('register-email').value;
+    
+    if (!username || !password || !email) {
+        showNotification('Por favor, completa todos los campos.', '#e74c3c');
+        return;
+    }
+    
+    try {
+        // Crear el usuario en Firebase Authentication
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        const firebaseUser = userCredential.user;
+        
+        // Enviar correo de verificación
+        await firebaseUser.sendEmailVerification();
+        
+        // Guardar información adicional del usuario en la base de datos
+        const users = await getUsers();
+        const newUser = {
+            id: users.length + 1,
+            username: username,
+            password: password, // Nota: en producción, considera no almacenar contraseñas en texto plano
+            email: email,
+            uid: firebaseUser.uid, // Guardar el UID de Firebase Authentication
+            emailVerified: false // Marcar como no verificado inicialmente
+        };
+        
+        users.push(newUser);
+        await saveUsers(users);
+        
+        // Mostrar notificación y redirigir al formulario de verificación
+        showNotification('Usuario registrado. Por favor verifica tu correo electrónico.');
+        showVerificationForm(email);
+        
+    } catch (error) {
+        console.error("Error al registrar usuario:", error);
+        showNotification('Error al registrar:  ' + error.message, '#e74c3c');
+    }
+}
+// Función para mostrar el formulario de verificación
+function showVerificationForm(email) {
+    document.getElementById('verification-email').textContent = email;
+    document.getElementById('main-options').classList.add('hidden');
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('register-form').classList.add('hidden');
+    document.getElementById('admin-login-form').classList.add('hidden');
+    document.getElementById('verification-form').classList.remove('hidden');
+    
+    // Configurar evento para reenviar correo
+    document.getElementById('resend-verification').addEventListener('click', function(event) {
+        event.preventDefault();
+        resendVerificationEmail();
+    });
+}
+// Función para reenviar correo de verificación
+async function resendVerificationEmail() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (user) {
+            await user.sendEmailVerification();
+            showNotification('Correo de verificación reenviado.');
+        } else {
+            showNotification('Debes iniciar sesión para reenviar el correo.', '#e74c3c');
+        }
+    } catch (error) {
+        console.error("Error al reenviar verificación:", error);
+        showNotification('Error al reenviar: ' + error.message, '#e74c3c');
+    }
+}
+// Función para verificar si el correo ha sido verificado
+async function checkVerification() {
+    try {
+        // Recargar el usuario para obtener el estado actualizado
+        await firebase.auth().currentUser.reload();
+        const user = firebase.auth().currentUser;
+        
+        if (user && user.emailVerified) {
+            // Actualizar el estado en la base de datos
+            const users = await getUsers();
+            const updatedUsers = users.map(u => {
+                if (u.email === user.email) {
+                    return {...u, emailVerified: true};
+                }
+                return u;
+            });
+            
+            await saveUsers(updatedUsers);
+            
+            // Buscar y establecer el usuario actual
+            const currentUserData = updatedUsers.find(u => u.email === user.email);
+            currentUser = currentUserData;
+            
+            // Guardar sesión
+            sessionStorage.setItem('currentUserSession', JSON.stringify(currentUserData));
+            
+            // Mostrar el panel de usuario
+            document.getElementById('verification-form').classList.add('hidden');
+            document.getElementById('user-panel').style.display = 'block';
+            
+            // Mostrar el nombre de usuario
+            document.getElementById('username-display').textContent = currentUserData.username;
+            
+            // Cargar las salas disponibles
+            loadUserRooms();
+            
+            showNotification('¡Correo verificado correctamente! Bienvenido.');
+        } else {
+            showNotification('Tu correo aún no ha sido verificado. Por favor verifica tu bandeja de entrada.', '#e74c3c');
+        }
+    } catch (error) {
+        console.error("Error al verificar email:", error);
+        showNotification('Error al verificar: ' + error.message, '#e74c3c');
+    }
+}  
+async function loginUser() {
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+    
+    if (!username || !password) {
+        showNotification('Por favor, completa todos los campos.', '#e74c3c');
+        return;
+    }
+    
+    try {
+        // Obtener usuarios
+        const users = await getUsers();
+        
+        // Buscar el usuario por nombre de usuario
+        const user = users.find(u => u.username === username);
+        
+        if (!user) {
+            showNotification('Usuario no encontrado.', '#e74c3c');
+            return;
+        }
+        
+        // Iniciar sesión con Firebase Authentication usando el email
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(user.email, password);
+        const firebaseUser = userCredential.user;
+        
+        // Verificar si el correo está verificado
+        if (!firebaseUser.emailVerified) {
+            // Mostrar formulario de verificación
+            showNotification('Debes verificar tu correo electrónico antes de iniciar sesión.', '#e74c3c');
+            showVerificationForm(user.email);
+            return;
+        }
+        
+        // Si está verificado, proceder con el inicio de sesión
+        currentUser = user;
+        sessionStorage.setItem('currentUserSession', JSON.stringify(user));
+        
+        // Mostrar el panel de usuario
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('user-panel').style.display = 'block';
+        
+        // Mostrar el nombre de usuario
+        document.getElementById('username-display').textContent = username;
+        
+        // Cargar las salas disponibles
+        loadUserRooms();
+        
+        showNotification(`Bienvenido, ${username}!`);
+        document.getElementById('login-form').reset();
+        
+    } catch (error) {
+        console.error("Error al iniciar sesión:", error);
+        showNotification('Usuario o contraseña incorrectos.', '#e74c3c');
+    }
+}
   
-  async function loginUser() {
-      const username = document.getElementById('login-username').value;
-      const password = document.getElementById('login-password').value;
-      
-      if (!username || !password) {
-          showNotification('Por favor, completa todos los campos.', '#e74c3c');
-          return;
-      }
-      
-      // Obtener usuarios
-      const users = await getUsers();
-      
-      // Verificar credenciales
-      const user = users.find(u => u.username === username && u.password === password);
-      
-      if (user) {
-          // Guardar el usuario actual
-          currentUser = user;
-          
-          // Guardar sesión en sessionStorage (solo para esta pestaña)
-          sessionStorage.setItem('currentUserSession', JSON.stringify(user));
-          
-          // Mostrar el panel de usuario
-          document.getElementById('login-form').classList.add('hidden');
-          document.getElementById('user-panel').style.display = 'block';
-          
-          // Mostrar el nombre de usuario
-          document.getElementById('username-display').textContent = username;
-          
-          // Cargar las salas disponibles
-          loadUserRooms();
-          
-          showNotification(`Bienvenido, ${username}!`);
-          document.getElementById('login-form').reset();
-      } else {
-          showNotification('Usuario o contraseña incorrectos.', '#e74c3c');
-      }
-  }
-  
-  function logoutUser() {
-      // Limpiar el usuario actual
-      currentUser = null;
-      
-      // Eliminar la sesión de sessionStorage
-      sessionStorage.removeItem('currentUserSession');
-      
-      // Ocultar el panel de usuario
-      document.getElementById('user-panel').style.display = 'none';
-      
-      // Mostrar opciones principales
-      showMainOptions();
-      
-      showNotification('Has cerrado sesión exitosamente.');
-  }
+function logoutUser() {
+    // Cerrar sesión en Firebase Authentication
+    firebase.auth().signOut().then(() => {
+        // Limpiar el usuario actual
+        currentUser = null;
+        
+        // Eliminar la sesión de sessionStorage
+        sessionStorage.removeItem('currentUserSession');
+        
+        // Ocultar el panel de usuario
+        document.getElementById('user-panel').style.display = 'none';
+        
+        // Mostrar opciones principales
+        showMainOptions();
+        
+        showNotification('Has cerrado sesión exitosamente.');
+    }).catch((error) => {
+        console.error("Error al cerrar sesión:", error);
+        showNotification('Error al cerrar sesión: ' + error.message, '#e74c3c');
+    });
+}
   
   async function loadUserRooms() {
       // Obtener las salas desde Firebase

@@ -71,7 +71,24 @@
                 <a href="#" onclick="showMainOptions()">Volver al inicio</a>
             </p>
         </div>
-        
+        <!-- Formulario de Verificación de Email -->
+        <div id="verification-form" class="form-container hidden">
+            <h2 class="form-title">Verificación de Correo</h2>
+            <p class="verification-message">
+                Se ha enviado un correo de verificación a <span id="verification-email"></span>.
+                Por favor, revisa tu bandeja de entrada y haz clic en el enlace de verificación.
+            </p>
+            <p class="verification-instruction">
+                Una vez que hayas verificado tu correo, haz clic en el botón de abajo para continuar.
+            </p>
+            <button class="submit-button" onclick="checkVerification()">He verificado mi correo</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" id="resend-verification">Reenviar correo de verificación</a>
+            </p>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
         <!-- Formulario de Admin Login -->
         <div id="admin-login-form" class="form-container hidden">
             <h2 class="form-title">Acceso Administrador</h2>
@@ -212,6 +229,7 @@
     </div>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

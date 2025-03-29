@@ -338,3 +338,24 @@ body {
 .join-button:hover {
     background-color: #27ae60;
 }
+
+.verification-message {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3498db;
+    color: #555;
+}
+
+.verification-instruction {
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+#verification-email {
+    font-weight: bold;
+    color: #3498db;
+}

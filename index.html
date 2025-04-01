@@ -131,6 +131,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Nombre de la Sala</th>
+                        <th>Apuesta Máx.</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -140,6 +141,28 @@
             </table>
             <p style="text-align: center; margin-top: 20px;">
                 <button class="admin-button" onclick="closeDatabase()">Volver al Panel de Admin</button>
+            </p>
+        </div>
+        <div id="room-bets-section" class="room-bets-section">
+            <h2 class="form-title" id="room-bets-title">Apuestas para: Sala</h2>
+            
+            <table id="room-bets-table" class="bets-table">
+                <thead>
+                    <tr>
+                        <th>ID Usuario</th>
+                        <th>Nombre Usuario</th>
+                        <th>Monto</th>
+                        <th>Equipo</th>
+                        <th>Fecha/Hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Las apuestas se cargarán dinámicamente -->
+                </tbody>
+            </table>
+            
+            <p style="text-align: center; margin-top: 20px;">
+                <button class="admin-button" onclick="closeRoomBets()">Volver al Panel de Admin</button>
             </p>
         </div>
         <div id="admin-panel" class="admin-panel">
@@ -180,6 +203,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Nombre de la Sala</th>
+                            <th>Apuesta Máx.</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -187,6 +211,32 @@
                         <!-- Los datos se añadirán dinámicamente -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+        <!-- Modal para Apuesta -->
+        <div id="bet-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeBetModal()">&times;</span>
+                <h2>Realizar Apuesta</h2>
+                <div class="room-info">
+                    <h3 id="bet-room-name">Nombre de la Sala</h3>
+                    <p id="bet-room-id">Sala #0</p>
+                </div>
+                
+                <div class="input-group">
+                    <label>¿Quién ganará la sala?</label>
+                    <div class="team-selection">
+                        <button id="radiant-btn" class="team-button radiant" onclick="selectTeam('radiant')">Radiant</button>
+                        <button id="dire-btn" class="team-button dire" onclick="selectTeam('dire')">Dire</button>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="bet-amount">Monto a apostar (S/.):</label>
+                    <input type="number" id="bet-amount" min="1" required placeholder="Ingrese monto en soles">
+                </div>
+                
+                <button class="submit-button" onclick="placeBet()">Votar</button>
             </div>
         </div>
         <!-- Modal para Crear Sala -->
@@ -197,6 +247,10 @@
                 <div class="input-group">
                     <label for="room-name">Nombre de la Sala:</label>
                     <input type="text" id="room-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="max-bet-amount">Monto Máximo de Apuesta (S/.):</label>
+                    <input type="number" id="max-bet-amount" min="1" required>
                 </div>
                 <button class="submit-button" onclick="createRoom()">Crear Sala</button>
             </div>
@@ -209,6 +263,10 @@
                 <div class="input-group">
                     <label for="edit-room-name">Nombre de la Sala:</label>
                     <input type="text" id="edit-room-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="edit-max-bet-amount">Monto Máximo de Apuesta (S/.):</label>
+                    <input type="number" id="edit-max-bet-amount" min="1" required>
                 </div>
                 <input type="hidden" id="edit-room-id">
                 <button class="submit-button" onclick="updateRoom()">Guardar Cambios</button>

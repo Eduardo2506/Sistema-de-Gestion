@@ -12,6 +12,56 @@ const firebaseConfig = {
   
   // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
+  function setupRoomListeners() {
+    database.ref('rooms').on('value', (snapshot) => {
+        const rooms = snapshot.val() || [];
+        
+        // Si estamos viendo una sala específica, actualizar su estado
+        if (currentRoom && document.getElementById('bet-modal').style.display === 'block') {
+            const updatedRoom = Array.isArray(rooms) ? 
+                rooms.find(r => r.id === currentRoom.id) : 
+                Object.values(rooms).find(r => r.id === currentRoom.id);
+                
+            if (updatedRoom) {
+                currentRoom = updatedRoom;
+                
+                // Actualizar visibilidad de botones
+                const radiantBtn = document.getElementById('radiant-btn');
+                const direBtn = document.getElementById('dire-btn');
+                const submitBtn = document.getElementById('bet-modal').querySelector('.submit-button');
+                
+                switch(updatedRoom.bettingStatus) {
+                    case 'both':
+                        radiantBtn.style.display = 'block';
+                        direBtn.style.display = 'block';
+                        submitBtn.disabled = false;
+                        break;
+                    case 'radiant':
+                        radiantBtn.style.display = 'block';
+                        direBtn.style.display = 'none';
+                        submitBtn.disabled = selectedTeam === 'dire';
+                        break;
+                    case 'dire':
+                        radiantBtn.style.display = 'none';
+                        direBtn.style.display = 'block';
+                        submitBtn.disabled = selectedTeam === 'radiant';
+                        break;
+                    case 'none':
+                        radiantBtn.style.display = 'none';
+                        direBtn.style.display = 'none';
+                        submitBtn.disabled = true;
+                        break;
+                }
+            }
+        }
+    });
+}
+
+// Llama a esta función al inicio
+document.addEventListener('DOMContentLoaded', function() {
+    // ... (tu código existente)
+    setupRoomListeners();
+});
   const database = firebase.database();
   const auth = firebase.auth();
   
@@ -19,6 +69,8 @@ const firebaseConfig = {
   let elementToDeleteId = null;
   let deleteType = null;
   let currentUser = null;
+  let selectedTeam = null;
+  let currentRoom = null;
   
   // Definir el usuario administrador (puedes cambiar estas credenciales)
   const ADMIN_USERNAME = 'admin';
@@ -43,6 +95,10 @@ const firebaseConfig = {
       if (!roomsSnapshot.exists()) {
           database.ref('rooms').set([]);
       }
+      const betsSnapshot = await database.ref('bets').once('value');
+      if (!betsSnapshot.exists()) {
+          database.ref('bets').set({});
+}
   }
  // Escuchar cambios en el estado de autenticación
 firebase.auth().onAuthStateChanged(async (user) => {
@@ -421,45 +477,157 @@ function logoutUser() {
     });
 }
   
-  async function loadUserRooms() {
-      // Obtener las salas desde Firebase
-      const rooms = await getRooms();
-      const roomsGrid = document.getElementById('rooms-grid');
-      
-      // Limpiar el contenedor
-      roomsGrid.innerHTML = '';
-      
-      if (rooms.length === 0) {
-          roomsGrid.innerHTML = '<p class="no-rooms">No hay salas disponibles en este momento.</p>';
-          return;
-      }
-      
-      // Crear una tarjeta para cada sala
-      rooms.forEach(room => {
-          const roomCard = document.createElement('div');
-          roomCard.className = 'room-card';
-          roomCard.innerHTML = `
-              <h3>${room.name}</h3>
-              <p>Sala #${room.id}</p>
-              <button class="join-button" onclick="joinRoom(${room.id})">Unirse</button>
-          `;
-          roomsGrid.appendChild(roomCard);
-      });
-  }
+async function loadUserRooms() {
+    // Obtener las salas desde Firebase
+    const rooms = await getRooms();
+    const roomsGrid = document.getElementById('rooms-grid');
+    
+    // Limpiar el contenedor
+    roomsGrid.innerHTML = '';
+    
+    if (rooms.length === 0) {
+        roomsGrid.innerHTML = '<p class="no-rooms">No hay salas disponibles en este momento.</p>';
+        return;
+    }
+    
+    // Crear una tarjeta para cada sala
+    rooms.forEach(room => {
+        const roomCard = document.createElement('div');
+        roomCard.className = 'room-card';
+        roomCard.innerHTML = `
+            <h3>${room.name}</h3>
+            <p>Sala #${room.id}</p>
+            <p class="max-bet-info">Apuesta máxima: S/.${room.maxBetAmount || 'No definido'}</p>
+            <button class="join-button" onclick="joinRoom(${room.id})">Unirse</button>
+        `;
+        roomsGrid.appendChild(roomCard);
+    });
+}
   
-  async function joinRoom(roomId) {
-      // Obtener la sala
-      const rooms = await getRooms();
-      const room = rooms.find(r => r.id === roomId);
-      
-      if (room) {
-          showNotification(`Te has unido a la sala: ${room.name}`);
-          // Aquí podrías implementar la lógica para entrar a la sala
-          // Por ahora, solo mostramos una notificación
-      } else {
-          showNotification('No se pudo encontrar la sala.', '#e74c3c');
-      }
-  }
+async function joinRoom(roomId) {
+    // Obtener la sala
+    const rooms = await getRooms();
+    const room = rooms.find(r => r.id === roomId);
+    
+    if (room) {
+        // Guardar la sala actual
+        currentRoom = room;
+        
+        // Configurar el modal de apuesta
+        document.getElementById('bet-room-name').textContent = room.name;
+        document.getElementById('bet-room-id').textContent = `Sala #${room.id}`;
+        
+        // Establecer el valor máximo en el campo de apuesta
+        const betAmountInput = document.getElementById('bet-amount');
+        betAmountInput.max = room.maxBetAmount;
+        betAmountInput.placeholder = `Máximo: S/.${room.maxBetAmount}`;
+        
+        // Resetear la selección
+        selectedTeam = null;
+        
+        // Obtener botones de equipo
+        const radiantBtn = document.getElementById('radiant-btn');
+        const direBtn = document.getElementById('dire-btn');
+        
+        // Configurar visibilidad según el estado de apuestas
+        switch(room.bettingStatus) {
+            case 'both':
+                radiantBtn.style.display = 'block';
+                direBtn.style.display = 'block';
+                break;
+            case 'radiant':
+                radiantBtn.style.display = 'block';
+                direBtn.style.display = 'none';
+                break;
+            case 'dire':
+                radiantBtn.style.display = 'none';
+                direBtn.style.display = 'block';
+                break;
+            case 'none':
+                radiantBtn.style.display = 'none';
+                direBtn.style.display = 'none';
+                document.getElementById('bet-modal').querySelector('.submit-button').disabled = true;
+                break;
+        }
+        
+        // Mostrar el modal
+        document.getElementById('bet-modal').style.display = 'block';
+    } else {
+        showNotification('No se pudo encontrar la sala.', '#e74c3c');
+    }
+}
+// Función para cerrar el modal de apuesta
+function closeBetModal() {
+    document.getElementById('bet-modal').style.display = 'none';
+}
+// Función para seleccionar equipo
+function selectTeam(team) {
+    selectedTeam = team;
+    
+    // Actualizar UI
+    if (team === 'radiant') {
+        document.getElementById('radiant-btn').classList.add('selected');
+        document.getElementById('dire-btn').classList.remove('selected');
+    } else {
+        document.getElementById('radiant-btn').classList.remove('selected');
+        document.getElementById('dire-btn').classList.add('selected');
+    }
+}
+// Función para realizar la apuesta
+async function placeBet() {
+
+    // Validar que las apuestas estén abiertas para el equipo seleccionado
+    if ((selectedTeam === 'radiant' && currentRoom.bettingStatus !== 'radiant' && currentRoom.bettingStatus !== 'both') ||
+        (selectedTeam === 'dire' && currentRoom.bettingStatus !== 'dire' && currentRoom.bettingStatus !== 'both')) {
+        showNotification('Las apuestas para este equipo están cerradas.', '#e74c3c');
+        return;
+    }
+
+    // Validar selección
+    if (!selectedTeam) {
+        showNotification('Por favor, selecciona un equipo.', '#e74c3c');
+        return;
+    }
+    
+    // Validar monto
+    const amount = parseFloat(document.getElementById('bet-amount').value);
+    if (!amount || amount <= 0) {
+        showNotification('Por favor, ingresa un monto válido.', '#e74c3c');
+        return;
+    }
+    
+    // Validar que no exceda el monto máximo
+    if (amount > currentRoom.maxBetAmount) {
+        showNotification(`La apuesta no puede exceder S/.${currentRoom.maxBetAmount}.`, '#e74c3c');
+        return;
+    }
+    
+    try {
+        // Aquí puedes implementar la lógica para guardar la apuesta en la base de datos
+        const betData = {
+            userId: currentUser.id,
+            userName: currentUser.username,
+            roomId: currentRoom.id,
+            roomName: currentRoom.name,
+            team: selectedTeam,
+            amount: amount,
+            timestamp: Date.now()
+        };
+        
+        // Ejemplo de guardado en la base de datos
+        const betRef = database.ref('bets').push();
+        await betRef.set(betData);
+        
+        // Mostrar confirmación
+        showNotification(`¡Apuesta realizada! Has apostado S/.${amount} por ${selectedTeam === 'radiant' ? 'Radiant' : 'Dire'}.`);
+        
+        // Cerrar modal
+        closeBetModal();
+    } catch (error) {
+        console.error("Error al realizar apuesta:", error);
+        showNotification('Error al procesar la apuesta: ' + error.message, '#e74c3c');
+    }
+}
   
   function loginAdmin() {
       const username = document.getElementById('admin-username').value;
@@ -492,33 +660,41 @@ function logoutUser() {
   
   // Funciones para gestionar salas
   async function createRoom() {
-      const roomName = document.getElementById('room-name').value;
-      
-      if (!roomName) {
-          showNotification('Por favor, ingresa un nombre para la sala.', '#e74c3c');
-          return;
-      }
-      
-      // Obtener salas actuales
-      const rooms = await getRooms();
-      
-      // Agregar nueva sala
-      const newRoom = {
-          id: rooms.length + 1,
-          name: roomName
-      };
-      
-      rooms.push(newRoom);
-      await saveRooms(rooms);
-      
-      showNotification('Sala creada exitosamente.');
-      
-      // Cerrar modal
-      closeCreateRoomModal();
-      
-      // Mostrar la lista de salas actualizada
-      showRoomsList();
-  }
+    const roomName = document.getElementById('room-name').value;
+    const maxBetAmount = parseFloat(document.getElementById('max-bet-amount').value);
+    
+    if (!roomName) {
+        showNotification('Por favor, ingresa un nombre para la sala.', '#e74c3c');
+        return;
+    }
+    
+    if (!maxBetAmount || maxBetAmount <= 0) {
+        showNotification('Por favor, ingresa un monto máximo de apuesta válido.', '#e74c3c');
+        return;
+    }
+    
+    // Obtener salas actuales
+    const rooms = await getRooms();
+    
+    // Agregar nueva sala con monto máximo
+    const newRoom = {
+        id: rooms.length + 1,
+        name: roomName,
+        maxBetAmount: maxBetAmount,
+        bettingStatus: 'both' // 'both', 'radiant', 'dire', 'none'
+    };
+    
+    rooms.push(newRoom);
+    await saveRooms(rooms);
+    
+    showNotification('Sala creada exitosamente.');
+    
+    // Cerrar modal
+    closeCreateRoomModal();
+    
+    // Mostrar la lista de salas actualizada
+    showRoomsList();
+}
   
   // Funciones para actualizar listas
   async function updateUsersList() {
@@ -540,60 +716,64 @@ function logoutUser() {
   }
   
   async function updateRoomsList() {
-      const rooms = await getRooms();
-      const tableBody = document.getElementById('rooms-table-body');
-      
-      tableBody.innerHTML = '';
-      
-      rooms.forEach(room => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-              <td>${room.id}</td>
-              <td>${room.name}</td>
-              <td>
-                  <button class="edit-button" onclick="openEditRoomModal(${room.id})">Editar</button>
-                  <button class="delete-button" onclick="confirmDelete(${room.id}, 'room')">Eliminar</button>
-              </td>
-          `;
-          tableBody.appendChild(row);
-      });
-  }
+    const rooms = await getRooms();
+    const tableBody = document.getElementById('rooms-table-body');
+    
+    tableBody.innerHTML = '';
+    
+    rooms.forEach(room => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${room.id}</td>
+            <td>${room.name}</td>
+            <td>S/.${room.maxBetAmount || 'No definido'}</td>
+            <td>
+                <button class="view-button" onclick="viewRoomBets(${room.id})">Entrar</button>
+                <button class="edit-button" onclick="openEditRoomModal(${room.id})">Editar</button>
+                <button class="delete-button" onclick="confirmDelete(${room.id}, 'room')">Eliminar</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
   
-  async function updateDatabaseView() {
-      const users = await getUsers();
-      const rooms = await getRooms();
-      
-      const usersTableBody = document.getElementById('database-users').querySelector('tbody');
-      const roomsTableBody = document.getElementById('database-rooms').querySelector('tbody');
-      
-      usersTableBody.innerHTML = '';
-      roomsTableBody.innerHTML = '';
-      
-      users.forEach(user => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-              <td>${user.id}</td>
-              <td>${user.username}</td>
-              <td>${user.email}</td>
-              <td>${user.password}</td>
-              <td><button class="delete-button" onclick="confirmDelete(${user.id}, 'user')">Eliminar</button></td>
-          `;
-          usersTableBody.appendChild(row);
-      });
-      
-      rooms.forEach(room => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-              <td>${room.id}</td>
-              <td>${room.name}</td>
-              <td>
-                  <button class="edit-button" onclick="openEditRoomModal(${room.id})">Editar</button>
-                  <button class="delete-button" onclick="confirmDelete(${room.id}, 'room')">Eliminar</button>
-              </td>
-          `;
-          roomsTableBody.appendChild(row);
-      });
-  }
+async function updateDatabaseView() {
+    const users = await getUsers();
+    const rooms = await getRooms();
+    
+    const usersTableBody = document.getElementById('database-users').querySelector('tbody');
+    const roomsTableBody = document.getElementById('database-rooms').querySelector('tbody');
+    
+    usersTableBody.innerHTML = '';
+    roomsTableBody.innerHTML = '';
+    
+    users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.username}</td>
+            <td>${user.email}</td>
+            <td>${user.password}</td>
+            <td><button class="delete-button" onclick="confirmDelete(${user.id}, 'user')">Eliminar</button></td>
+        `;
+        usersTableBody.appendChild(row);
+    });
+    
+    rooms.forEach(room => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${room.id}</td>
+            <td>${room.name}</td>
+            <td>S/.${room.maxBetAmount || 'No definido'}</td>
+            <td>
+                <button class="view-button" onclick="viewRoomBets(${room.id})">Entrar</button>
+                <button class="edit-button" onclick="openEditRoomModal(${room.id})">Editar</button>
+                <button class="delete-button" onclick="confirmDelete(${room.id}, 'room')">Eliminar</button>
+            </td>
+        `;
+        roomsTableBody.appendChild(row);
+    });
+}
   
   // Funciones para eliminar elementos
   function confirmDelete(id, type) {
@@ -650,68 +830,198 @@ function logoutUser() {
   }
   
   async function deleteRoom(roomId) {
-      let rooms = await getRooms();
-      
-      // Filtrar para eliminar la sala
-      rooms = rooms.filter(room => room.id !== roomId);
-      
-      // Actualizar IDs si es necesario
-      rooms = rooms.map((room, index) => {
-          return {...room, id: index + 1};
-      });
-      
-      await saveRooms(rooms);
-      showNotification('Sala eliminada exitosamente.');
-  }
-  
-  async function openEditRoomModal(roomId) {
-      // Obtener salas
-      const rooms = await getRooms();
-      
-      // Encontrar la sala con el ID proporcionado
-      const roomToEdit = rooms.find(room => room.id === roomId);
-      
-      if (roomToEdit) {
-          // Llenar el formulario con los datos actuales
-          document.getElementById('edit-room-name').value = roomToEdit.name;
-          document.getElementById('edit-room-id').value = roomId;
-          
-          // Mostrar el modal
-          document.getElementById('edit-room-modal').style.display = 'block';
-      } else {
-          showNotification('No se pudo encontrar la sala.', '#e74c3c');
-      }
-  }
+    try {
+        // 1. Obtener todas las salas
+        let rooms = await getRooms();
+        
+        // 2. Filtrar para eliminar la sala
+        rooms = rooms.filter(room => room.id !== roomId);
+        
+        // 3. Actualizar IDs si es necesario
+        rooms = rooms.map((room, index) => {
+            return {...room, id: index + 1};
+        });
+        
+        // 4. Eliminar todas las apuestas asociadas a esta sala
+        const betsSnapshot = await database.ref('bets').once('value');
+        const allBets = betsSnapshot.val() || {};
+        
+        // Buscar y eliminar las apuestas asociadas a esta sala
+        const promises = [];
+        for (const betId in allBets) {
+            const bet = allBets[betId];
+            if (bet.roomId === roomId) {
+                // Agregar promesa para eliminar cada apuesta
+                promises.push(database.ref(`bets/${betId}`).remove());
+            }
+        }
+        
+        // Esperar a que todas las eliminaciones de apuestas se completen
+        await Promise.all(promises);
+        
+        // 5. Guardar las salas actualizadas
+        await saveRooms(rooms);
+        
+        showNotification('Sala y todas sus apuestas eliminadas exitosamente.');
+    } catch (error) {
+        console.error("Error al eliminar sala:", error);
+        showNotification('Error al eliminar sala: ' + error.message, '#e74c3c');
+    }
+}
   
   function closeEditRoomModal() {
       document.getElementById('edit-room-modal').style.display = 'none';
   }
   
   async function updateRoom() {
-      const roomId = parseInt(document.getElementById('edit-room-id').value);
-      const newName = document.getElementById('edit-room-name').value;
-      
-      if (!newName) {
-          showNotification('Por favor, ingresa un nombre para la sala.', '#e74c3c');
-          return;
-      }
-      
-      // Obtener salas actuales
-      let rooms = await getRooms();
-      
-      // Encontrar y actualizar la sala
-      rooms = rooms.map(room => {
-          if (room.id === roomId) {
-              return { ...room, name: newName };
-          }
-          return room;
-      });
-      
-      // Guardar cambios
-      await saveRooms(rooms);
-      
-      showNotification('Sala actualizada exitosamente.');
-      
-      // Cerrar modal
-      closeEditRoomModal();
-  }
+    const roomId = parseInt(document.getElementById('edit-room-id').value);
+    const newName = document.getElementById('edit-room-name').value;
+    const newMaxBetAmount = parseFloat(document.getElementById('edit-max-bet-amount').value);
+    
+    if (!newName) {
+        showNotification('Por favor, ingresa un nombre para la sala.', '#e74c3c');
+        return;
+    }
+    
+    if (!newMaxBetAmount || newMaxBetAmount <= 0) {
+        showNotification('Por favor, ingresa un monto máximo de apuesta válido.', '#e74c3c');
+        return;
+    }
+    
+    // Obtener salas actuales
+    let rooms = await getRooms();
+    
+    // Encontrar y actualizar la sala
+    rooms = rooms.map(room => {
+        if (room.id === roomId) {
+            return { 
+                ...room, 
+                name: newName,
+                maxBetAmount: newMaxBetAmount
+            };
+        }
+        return room;
+    });
+    
+    // Guardar cambios
+    await saveRooms(rooms);
+    
+    showNotification('Sala actualizada exitosamente.');
+    
+    // Cerrar modal
+    closeEditRoomModal();
+}
+// Función para resetear el modal de crear sala
+function closeCreateRoomModal() {
+    document.getElementById('create-room-modal').style.display = 'none';
+    document.getElementById('room-name').value = '';
+    document.getElementById('max-bet-amount').value = '';
+}
+
+async function viewRoomBets(roomId) {
+    try {
+        // Obtener las salas
+        const rooms = await getRooms();
+        
+        // Encontrar la sala seleccionada
+        const selectedRoom = rooms.find(room => room.id === roomId);
+        
+        if (!selectedRoom) {
+            showNotification('No se pudo encontrar la sala.', '#e74c3c');
+            return;
+        }
+        
+        // Actualizar el título del panel de apuestas
+        document.getElementById('room-bets-title').textContent = `Apuestas para: ${selectedRoom.name} (Sala #${selectedRoom.id})`;
+        
+        // Obtener todas las apuestas de la base de datos
+        const betsSnapshot = await database.ref('bets').once('value');
+        const allBets = betsSnapshot.val() || {};
+        
+        // Filtrar las apuestas para esta sala
+        const roomBets = [];
+        for (const betId in allBets) {
+            const bet = allBets[betId];
+            if (bet.roomId === roomId) {
+                roomBets.push({
+                    id: betId,
+                    ...bet
+                });
+            }
+        }
+        
+        // Mostrar las apuestas en la tabla
+        const betsTableBody = document.getElementById('room-bets-table').querySelector('tbody');
+        betsTableBody.innerHTML = '';
+        
+        if (roomBets.length === 0) {
+            betsTableBody.innerHTML = '<tr><td colspan="5" class="no-bets">No hay apuestas en esta sala.</td></tr>';
+        } else {
+            roomBets.forEach(bet => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${bet.userId}</td>
+                    <td>${bet.userName}</td>
+                    <td>S/.${bet.amount.toFixed(2)}</td>
+                    <td><span class="team-indicator ${bet.team}">${bet.team === 'radiant' ? 'Radiant' : 'Dire'}</span></td>
+                    <td>${new Date(bet.timestamp).toLocaleString()}</td>
+                `;
+                betsTableBody.appendChild(row);
+            });
+        }
+        
+        // Mostrar el panel de apuestas
+        document.getElementById('admin-panel').style.display = 'none';
+        document.getElementById('database-section').style.display = 'none';
+        document.getElementById('room-bets-section').style.display = 'block';
+
+        showBettingControls(roomId); // Mostrar controles de apuestas
+        
+    } catch (error) {
+        console.error("Error al cargar apuestas:", error);
+        showNotification('Error al cargar las apuestas: ' + error.message, '#e74c3c');
+    }
+}
+
+// Función para volver del panel de apuestas al panel de administrador
+function closeRoomBets() {
+    document.getElementById('room-bets-section').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+}
+async function updateBettingStatus(roomId, status) {
+    try {
+        const rooms = await getRooms();
+        const updatedRooms = rooms.map(room => {
+            if (room.id === roomId) {
+                return {...room, bettingStatus: status};
+            }
+            return room;
+        });
+        
+        await saveRooms(updatedRooms);
+        showNotification(`Estado de apuestas actualizado: ${status}`);
+    } catch (error) {
+        console.error("Error al actualizar estado:", error);
+        showNotification('Error al actualizar estado: ' + error.message, '#e74c3c');
+    }
+}
+
+// Función para mostrar controles de apuestas en el panel de admin
+function showBettingControls(roomId) {
+    const controlsHTML = `
+        <div class="betting-controls">
+            <h3>Control de Apuestas</h3>
+            <div class="control-buttons">
+                <button class="admin-button" onclick="updateBettingStatus(${roomId}, 'radiant')">Abrir solo Radiant</button>
+                <button class="admin-button" onclick="updateBettingStatus(${roomId}, 'dire')">Abrir solo Dire</button>
+                <button class="admin-button" onclick="updateBettingStatus(${roomId}, 'both')">Abrir ambos</button>
+                <button class="admin-button" onclick="updateBettingStatus(${roomId}, 'none')">Cerrar ambos</button>
+            </div>
+        </div>
+    `;
+    
+    // Agregar controles al panel de apuestas
+    const controlsContainer = document.createElement('div');
+    controlsContainer.innerHTML = controlsHTML;
+    document.getElementById('room-bets-section').prepend(controlsContainer);
+}

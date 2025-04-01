@@ -359,3 +359,158 @@ body {
     font-weight: bold;
     color: #3498db;
 }
+/* Estilos para el modal de apuesta */
+.team-selection {
+    display: flex;
+    justify-content: space-between;
+    margin: 15px 0;
+}
+
+.team-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 48%;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.team-button.radiant {
+    background-color: #66bb6a;
+    color: white;
+}
+
+.team-button.dire {
+    background-color: #e53935;
+    color: white;
+}
+
+.team-button.selected {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.team-button:hover {
+    opacity: 0.9;
+}
+
+.room-info {
+    background-color: #f8f8f8;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.room-info h3 {
+    margin: 0 0 5px 0;
+}
+
+.room-info p {
+    margin: 0;
+    color: #666;
+}
+
+input[type="number"] {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: 100%;
+    font-size: 16px;
+}
+
+/* Estilos para el botón de entrar */
+.view-button {
+    background-color: #2980b9;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.view-button:hover {
+    background-color: #3498db;
+}
+
+/* Estilos para el panel de apuestas */
+.room-bets-section {
+    display: none;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.bets-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.bets-table th, .bets-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+.bets-table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.bets-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.team-indicator {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    color: white;
+    font-weight: bold;
+}
+
+.team-indicator.radiant {
+    background-color: #3498db;
+}
+
+.team-indicator.dire {
+    background-color: #e74c3c;
+}
+
+.no-bets {
+    text-align: center;
+    font-style: italic;
+    color: #777;
+}
+
+/* Estilos para controles de apuestas */
+.betting-controls {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3498db;
+}
+
+.betting-controls h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.control-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Estilos para botones deshabilitados */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

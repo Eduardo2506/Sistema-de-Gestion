@@ -1,0 +1,330 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sistema de Gestión</h1>
+        </div>
+        
+        <div id="main-options" class="options">
+            <button class="option-button" onclick="showLoginForm()">Iniciar Sesión</button>
+            <button class="option-button" onclick="showRegisterForm()">Registrarse</button>
+            <button class="option-button" onclick="showAdminLoginForm()">Admin</button>
+        </div>
+        
+        <!-- Formulario de Inicio de Sesión -->
+        <div id="login-form" class="form-container hidden">
+            <h2 class="form-title">Iniciar Sesión</h2>
+            <div class="input-group">
+                <label for="login-username">Usuario:</label>
+                <input type="text" id="login-username" required>
+            </div>
+            <div class="input-group">
+                <label for="login-password">Contraseña:</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button class="submit-button" onclick="loginUser()">Iniciar Sesión</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+
+        <!-- Panel de Usuario -->
+        <div id="user-panel" class="user-panel">
+            <div class="welcome-message" id="user-welcome">Bienvenido, <span id="username-display"></span></div>
+            
+            <div class="user-header">
+                <h2>Salas Disponibles</h2>
+                <button class="user-button" style="background-color: #e74c3c;" onclick="logoutUser()">Cerrar Sesión</button>
+            </div>
+            
+            <!-- Lista de Salas para el Usuario -->
+            <div id="user-rooms-container" class="user-content">
+                <div id="rooms-grid" class="rooms-grid">
+                    <!-- Las salas se añadirán dinámicamente -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulario de Registro -->
+        <div id="register-form" class="form-container hidden">
+            <h2 class="form-title">Registrarse</h2>
+            <div class="input-group">
+                <label for="register-username">Usuario:</label>
+                <input type="text" id="register-username" required>
+            </div>
+            <div class="input-group">
+                <label for="register-password">Contraseña:</label>
+                <input type="password" id="register-password" required>
+            </div>
+            <div class="input-group">
+                <label for="register-email">Email:</label>
+                <input type="email" id="register-email" required>
+            </div>
+            <button class="submit-button" onclick="registerUser()">Registrarse</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+        <!-- Formulario de Verificación de Email -->
+        <div id="verification-form" class="form-container hidden">
+            <h2 class="form-title">Verificación de Correo</h2>
+            <p class="verification-message">
+                Se ha enviado un correo de verificación a <span id="verification-email"></span>.
+                Por favor, revisa tu bandeja de entrada y haz clic en el enlace de verificación.
+            </p>
+            <p class="verification-instruction">
+                Una vez que hayas verificado tu correo, haz clic en el botón de abajo para continuar.
+            </p>
+            <button class="submit-button" onclick="checkVerification()">He verificado mi correo</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" id="resend-verification">Reenviar correo de verificación</a>
+            </p>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+        <!-- Formulario de Admin Login -->
+        <div id="admin-login-form" class="form-container hidden">
+            <h2 class="form-title">Acceso Administrador</h2>
+            <div class="input-group">
+                <label for="admin-username">Usuario Admin:</label>
+                <input type="text" id="admin-username" required>
+            </div>
+            <div class="input-group">
+                <label for="admin-password">Contraseña Admin:</label>
+                <input type="password" id="admin-password" required>
+            </div>
+            <button class="submit-button" onclick="loginAdmin()">Acceder</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+        
+        <!-- Base de Datos -->
+        <div id="database-section" class="database-section">
+            <h2 class="form-title">Base de Datos</h2>
+            <h3>Usuarios Registrados:</h3>
+            <table id="database-users" class="user-list">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Contraseña</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Los datos se añadirán dinámicamente -->
+                </tbody>
+            </table>
+            
+            <h3>Salas Creadas:</h3>
+            <table id="database-rooms" class="room-list">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre de la Sala</th>
+                        <th>Apuesta Máx.</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Los datos se añadirán dinámicamente -->
+                </tbody>
+            </table>
+            <p style="text-align: center; margin-top: 20px;">
+                <button class="admin-button" onclick="closeDatabase()">Volver al Panel de Admin</button>
+            </p>
+        </div>
+        <div id="room-bets-section" class="room-bets-section">
+            <h2 class="form-title" id="room-bets-title">Apuestas para: Sala</h2>
+            
+            <table id="room-bets-table" class="bets-table">
+                <thead>
+                    <tr>
+                        <th>ID Usuario</th>
+                        <th>Nombre Usuario</th>
+                        <th>Monto</th>
+                        <th>Equipo</th>
+                        <th>Fecha/Hora</th>
+                        <th>Código Yape</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Las apuestas se cargarán dinámicamente -->
+                </tbody>
+            </table>
+            
+            <p style="text-align: center; margin-top: 20px;">
+                <button class="admin-button" onclick="closeRoomBets()">Volver al Panel de Admin</button>
+            </p>
+        </div>
+        <div id="admin-panel" class="admin-panel">
+            <div class="welcome-message">Bienvenido, Administrador</div>
+            
+            <div class="admin-header">
+                <div>
+                    <button class="admin-button" onclick="showUsersList()">Ver Usuarios</button>
+                    <button class="admin-button" onclick="openCreateRoomModal()">Crear Sala</button>
+                    <button class="admin-button" onclick="showDatabase()">Base de Datos</button>
+                </div>
+                <button class="admin-button" style="background-color: #e74c3c;" onclick="logoutAdmin()">Cerrar Sesión</button>
+            </div>
+            
+            <!-- Lista de Usuarios -->
+            <div id="users-list-section" class="admin-content hidden">
+                <h2>Usuarios Registrados</h2>
+                <table class="user-list">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Los datos se añadirán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Lista de Salas -->
+            <div id="rooms-list-section" class="admin-content visible">
+                <h2>Salas Creadas</h2>
+                <table class="room-list">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre de la Sala</th>
+                            <th>Apuesta Máx.</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rooms-table-body">
+                        <!-- Los datos se añadirán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Modal para Yape -->
+        <div id="yape-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeYapeModal()">&times;</span>
+                <h2>Confirmar Pago con Yape</h2>
+                
+                <div class="payment-info">
+                    <p>Por favor realiza el pago a través de Yape</p>
+                    <div class="amount-info">
+                        Monto a pagar: <span id="yape-amount">S/.0.00</span>
+                    </div>
+                </div>
+                
+                <div class="qr-container">
+                    <!-- Aquí iría la imagen del QR estático de tu cuenta Yape -->
+                    <img src="yape-qr.jpg" alt="Código QR de Yape" style="width:100%">
+                    <p class="yape-instruction">Escanea este código con Yape o envía el monto al número asociado</p>
+                </div>
+                
+                <div class="input-group">
+                    <label for="yape-code">Código de 3 dígitos de Yape:</label>
+                    <input type="text" id="yape-code" maxlength="3" placeholder="Ingresa el código de 3 dígitos">
+                </div>
+                
+                <div class="verification-section">
+                    <p>Una vez realizado el pago, ingresa el código de verificación que aparece en Yape</p>
+                    <button class="submit-button" onclick="verifyYapePayment()">Verificar Pago</button>
+                </div>
+                
+                <div id="payment-status" class="payment-status hidden">
+                    <!-- Mensaje de estado del pago -->
+                </div>
+            </div>
+        </div>
+        <!-- Modal para Apuesta -->
+        <div id="bet-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeBetModal()">&times;</span>
+                <h2>Realizar Apuesta</h2>
+                <div class="room-info">
+                    <h3 id="bet-room-name">Nombre de la Sala</h3>
+                    <p id="bet-room-id">Sala #0</p>
+                </div>
+                
+                <div class="input-group">
+                    <label>¿Quién ganará la sala?</label>
+                    <div class="team-selection">
+                        <button id="radiant-btn" class="team-button radiant" onclick="selectTeam('radiant')">Radiant</button>
+                        <button id="dire-btn" class="team-button dire" onclick="selectTeam('dire')">Dire</button>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="bet-amount">Monto a apostar (S/.):</label>
+                    <input type="number" id="bet-amount" min="1" required placeholder="Ingrese monto en soles">
+                </div>
+                
+                <button class="submit-button" onclick="placeBet()">Votar</button>
+            </div>
+        </div>
+        <!-- Modal para Crear Sala -->
+        <div id="create-room-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeCreateRoomModal()">&times;</span>
+                <h2>Crear Nueva Sala</h2>
+                <div class="input-group">
+                    <label for="room-name">Nombre de la Sala:</label>
+                    <input type="text" id="room-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="max-bet-amount">Monto Máximo de Apuesta (S/.):</label>
+                    <input type="number" id="max-bet-amount" min="1" required>
+                </div>
+                <button class="submit-button" onclick="createRoom()">Crear Sala</button>
+            </div>
+        </div>
+        <!-- Modal para Editar Sala -->
+        <div id="edit-room-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeEditRoomModal()">&times;</span>
+                <h2>Editar Sala</h2>
+                <div class="input-group">
+                    <label for="edit-room-name">Nombre de la Sala:</label>
+                    <input type="text" id="edit-room-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="edit-max-bet-amount">Monto Máximo de Apuesta (S/.):</label>
+                    <input type="number" id="edit-max-bet-amount" min="1" required>
+                </div>
+                <input type="hidden" id="edit-room-id">
+                <button class="submit-button" onclick="updateRoom()">Guardar Cambios</button>
+            </div>
+        </div>
+        <!-- Modal de Confirmación -->
+        <div id="confirm-modal" class="confirm-modal">
+            <div class="confirm-modal-content">
+                <p id="confirm-message">¿Estás seguro de que quieres eliminar este elemento?</p>
+                <div class="confirm-buttons">
+                    <button id="confirm-yes-btn" class="confirm-button confirm-yes">Sí, eliminar</button>
+                    <button id="confirm-no-btn" class="confirm-button confirm-no">Cancelar</button>
+                </div>
+            </div>
+        </div>
+        <!-- Notificación -->
+        <div id="notification" class="notification"></div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

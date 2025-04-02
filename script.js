@@ -12,46 +12,36 @@ const firebaseConfig = {
   
   // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
+  
   function setupRoomListeners() {
     database.ref('rooms').on('value', (snapshot) => {
         const rooms = snapshot.val() || [];
         
-        // Si estamos viendo una sala específica, actualizar su estado
-        if (currentRoom && document.getElementById('bet-modal').style.display === 'block') {
+        // Verificar si la sala actual ha cambiado
+        if (currentRoom) {
             const updatedRoom = Array.isArray(rooms) ? 
                 rooms.find(r => r.id === currentRoom.id) : 
                 Object.values(rooms).find(r => r.id === currentRoom.id);
                 
             if (updatedRoom) {
-                currentRoom = updatedRoom;
-                
-                // Actualizar visibilidad de botones
-                const radiantBtn = document.getElementById('radiant-btn');
-                const direBtn = document.getElementById('dire-btn');
-                const submitBtn = document.getElementById('bet-modal').querySelector('.submit-button');
-                
-                switch(updatedRoom.bettingStatus) {
-                    case 'both':
-                        radiantBtn.style.display = 'block';
-                        direBtn.style.display = 'block';
-                        submitBtn.disabled = false;
-                        break;
-                    case 'radiant':
-                        radiantBtn.style.display = 'block';
-                        direBtn.style.display = 'none';
-                        submitBtn.disabled = selectedTeam === 'dire';
-                        break;
-                    case 'dire':
-                        radiantBtn.style.display = 'none';
-                        direBtn.style.display = 'block';
-                        submitBtn.disabled = selectedTeam === 'radiant';
-                        break;
-                    case 'none':
-                        radiantBtn.style.display = 'none';
-                        direBtn.style.display = 'none';
-                        submitBtn.disabled = true;
-                        break;
+                // Notificar si el monto máximo ha cambiado
+                if (updatedRoom.maxBetAmount !== currentRoom.maxBetAmount) {
+                    showNotification(`¡Atención! El monto máximo de apuesta para esta sala ha cambiado a S/.${updatedRoom.maxBetAmount}`, '#f39c12');
                 }
+                
+                // Notificar si el estado de apuestas ha cambiado
+                if (updatedRoom.bettingStatus !== currentRoom.bettingStatus) {
+                    let statusMessage = '';
+                    switch(updatedRoom.bettingStatus) {
+                        case 'both': statusMessage = 'Apuestas abiertas para ambos equipos'; break;
+                        case 'radiant': statusMessage = 'Apuestas abiertas solo para Radiant'; break;
+                        case 'dire': statusMessage = 'Apuestas abiertas solo para Dire'; break;
+                        case 'none': statusMessage = 'Apuestas cerradas para ambos equipos'; break;
+                    }
+                    showNotification(`¡Atención! Estado de apuestas actualizado: ${statusMessage}`, '#f39c12');
+                }
+                
+                currentRoom = updatedRoom;
             }
         }
     });
@@ -71,6 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentUser = null;
   let selectedTeam = null;
   let currentRoom = null;
+
+  let currentBetAmount = 0;
+  let currentBetTeam = '';
   
   // Definir el usuario administrador (puedes cambiar estas credenciales)
   const ADMIN_USERNAME = 'admin';
@@ -575,14 +568,6 @@ function selectTeam(team) {
 }
 // Función para realizar la apuesta
 async function placeBet() {
-
-    // Validar que las apuestas estén abiertas para el equipo seleccionado
-    if ((selectedTeam === 'radiant' && currentRoom.bettingStatus !== 'radiant' && currentRoom.bettingStatus !== 'both') ||
-        (selectedTeam === 'dire' && currentRoom.bettingStatus !== 'dire' && currentRoom.bettingStatus !== 'both')) {
-        showNotification('Las apuestas para este equipo están cerradas.', '#e74c3c');
-        return;
-    }
-
     // Validar selección
     if (!selectedTeam) {
         showNotification('Por favor, selecciona un equipo.', '#e74c3c');
@@ -602,30 +587,72 @@ async function placeBet() {
         return;
     }
     
+    // Guardar los datos de la apuesta temporalmente
+    currentBetAmount = amount;
+    currentBetTeam = selectedTeam;
+    
+    // Mostrar modal de Yape
+    document.getElementById('yape-amount').textContent = `S/.${amount.toFixed(2)}`;
+    document.getElementById('yape-code').value = '';
+    document.getElementById('payment-status').className = 'payment-status hidden';
+    document.getElementById('bet-modal').style.display = 'none';
+    document.getElementById('yape-modal').style.display = 'block';
+}
+
+function closeYapeModal() {
+    document.getElementById('yape-modal').style.display = 'none';
+    document.getElementById('bet-modal').style.display = 'block';
+}
+
+async function verifyYapePayment() {
+    const yapeCode = document.getElementById('yape-code').value.trim();
+    
+    if (!yapeCode || yapeCode.length !== 3 || !/^\d+$/.test(yapeCode)) {
+        showNotification('Por favor, ingresa un código de 3 dígitos válido.', '#e74c3c');
+        return;
+    }
+    
+    const statusElement = document.getElementById('payment-status');
+    statusElement.textContent = 'Verificando pago...';
+    statusElement.className = 'payment-status pending';
+    
     try {
-        // Aquí puedes implementar la lógica para guardar la apuesta en la base de datos
+        // Aquí normalmente harías una verificación con tu backend
+        // Pero como es verificación manual, marcamos como pendiente
+        
         const betData = {
             userId: currentUser.id,
             userName: currentUser.username,
             roomId: currentRoom.id,
             roomName: currentRoom.name,
-            team: selectedTeam,
-            amount: amount,
-            timestamp: Date.now()
+            team: currentBetTeam,
+            amount: currentBetAmount,
+            yapeCode: yapeCode,
+            status: 'pending', // pending, verified, rejected
+            timestamp: Date.now(),
+            verifiedBy: null,
+            verificationDate: null
         };
         
-        // Ejemplo de guardado en la base de datos
+        // Guardar la apuesta en la base de datos
         const betRef = database.ref('bets').push();
         await betRef.set(betData);
         
-        // Mostrar confirmación
-        showNotification(`¡Apuesta realizada! Has apostado S/.${amount} por ${selectedTeam === 'radiant' ? 'Radiant' : 'Dire'}.`);
+        statusElement.textContent = 'Pago recibido. Esperando verificación del administrador.';
+        statusElement.className = 'payment-status pending';
         
-        // Cerrar modal
-        closeBetModal();
+        showNotification('Apuesta registrada. Espera la verificación del administrador.');
+        
+        // Cerrar modales después de 3 segundos
+        setTimeout(() => {
+            closeYapeModal();
+            closeBetModal();
+        }, 3000);
+        
     } catch (error) {
-        console.error("Error al realizar apuesta:", error);
-        showNotification('Error al procesar la apuesta: ' + error.message, '#e74c3c');
+        console.error("Error al registrar apuesta:", error);
+        statusElement.textContent = 'Error al registrar la apuesta. Intenta nuevamente.';
+        statusElement.className = 'payment-status error';
     }
 }
   
@@ -955,7 +982,7 @@ async function viewRoomBets(roomId) {
         betsTableBody.innerHTML = '';
         
         if (roomBets.length === 0) {
-            betsTableBody.innerHTML = '<tr><td colspan="5" class="no-bets">No hay apuestas en esta sala.</td></tr>';
+            betsTableBody.innerHTML = '<tr><td colspan="8" class="no-bets">No hay apuestas en esta sala.</td></tr>';
         } else {
             roomBets.forEach(bet => {
                 const row = document.createElement('tr');
@@ -965,6 +992,19 @@ async function viewRoomBets(roomId) {
                     <td>S/.${bet.amount.toFixed(2)}</td>
                     <td><span class="team-indicator ${bet.team}">${bet.team === 'radiant' ? 'Radiant' : 'Dire'}</span></td>
                     <td>${new Date(bet.timestamp).toLocaleString()}</td>
+                    <td>${bet.yapeCode || 'N/A'}</td>
+                    <td>
+                        <span class="status-indicator ${bet.status}">
+                            ${bet.status === 'verified' ? 'Verificado' : 
+                              bet.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                        </span>
+                    </td>
+                    <td>
+                        ${bet.status === 'pending' ? `
+                            <button class="verify-button" onclick="verifyBet('${bet.id}', true, '${bet.userId}')">Aprobar</button>
+                            <button class="reject-button" onclick="verifyBet('${bet.id}', false, '${bet.userId}')">Rechazar</button>
+                        ` : bet.verifiedBy || 'N/A'}
+                    </td>
                 `;
                 betsTableBody.appendChild(row);
             });
@@ -980,6 +1020,49 @@ async function viewRoomBets(roomId) {
     } catch (error) {
         console.error("Error al cargar apuestas:", error);
         showNotification('Error al cargar las apuestas: ' + error.message, '#e74c3c');
+    }
+}
+async function verifyBet(betId, isApproved, userId) {
+    try {
+        // Obtener la apuesta específica
+        const betSnapshot = await database.ref(`bets/${betId}`).once('value');
+        const bet = betSnapshot.val();
+        
+        if (!bet) {
+            showNotification('No se encontró la apuesta.', '#e74c3c');
+            return;
+        }
+        
+        if (isApproved) {
+            // Aprobar la apuesta
+            const updates = {
+                status: 'verified',
+                verifiedBy: 'admin', // Aquí podrías poner el ID del admin
+                verificationDate: Date.now()
+            };
+            
+            await database.ref(`bets/${betId}`).update(updates);
+            
+            showNotification(`Apuesta aprobada correctamente.`);
+            
+            // Notificar al usuario
+            notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido aprobada.`);
+        } else {
+            // Rechazar la apuesta - eliminarla de la base de datos
+            await database.ref(`bets/${betId}`).remove();
+            
+            showNotification(`Apuesta rechazada y eliminada.`);
+            
+            // Notificar al usuario
+            notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido rechazada.`);
+        }
+        
+        // Actualizar la lista de apuestas
+        viewRoomBets(bet.roomId);
+        
+    } catch (error) {
+        console.error("Error al verificar apuesta:", error);
+        showNotification('Error al verificar la apuesta: ' + error.message, '#e74c3c');
     }
 }
 

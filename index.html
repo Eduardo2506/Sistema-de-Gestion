@@ -154,6 +154,9 @@
                         <th>Monto</th>
                         <th>Equipo</th>
                         <th>Fecha/Hora</th>
+                        <th>Código Yape</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -211,6 +214,40 @@
                         <!-- Los datos se añadirán dinámicamente -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+        <!-- Modal para Yape -->
+        <div id="yape-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeYapeModal()">&times;</span>
+                <h2>Confirmar Pago con Yape</h2>
+                
+                <div class="payment-info">
+                    <p>Por favor realiza el pago a través de Yape</p>
+                    <div class="amount-info">
+                        Monto a pagar: <span id="yape-amount">S/.0.00</span>
+                    </div>
+                </div>
+                
+                <div class="qr-container">
+                    <!-- Aquí iría la imagen del QR estático de tu cuenta Yape -->
+                    <img src="yape-qr.jpg" alt="Código QR de Yape" style="width:100%">
+                    <p class="yape-instruction">Escanea este código con Yape o envía el monto al número asociado</p>
+                </div>
+                
+                <div class="input-group">
+                    <label for="yape-code">Código de 3 dígitos de Yape:</label>
+                    <input type="text" id="yape-code" maxlength="3" placeholder="Ingresa el código de 3 dígitos">
+                </div>
+                
+                <div class="verification-section">
+                    <p>Una vez realizado el pago, ingresa el código de verificación que aparece en Yape</p>
+                    <button class="submit-button" onclick="verifyYapePayment()">Verificar Pago</button>
+                </div>
+                
+                <div id="payment-status" class="payment-status hidden">
+                    <!-- Mensaje de estado del pago -->
+                </div>
             </div>
         </div>
         <!-- Modal para Apuesta -->

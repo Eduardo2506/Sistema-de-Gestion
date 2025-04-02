@@ -46,6 +46,21 @@ const firebaseConfig = {
         }
     });
 }
+async function sendNotification(userId, notification) {
+    try {
+        // 1. Guardar en el almacenamiento local (solución temporal)
+        let userNotifications = JSON.parse(localStorage.getItem(`notifications_${userId}`)) || [];
+        userNotifications.push(notification);
+        localStorage.setItem(`notifications_${userId}`, JSON.stringify(userNotifications));
+        
+        // 2. Si hay conexión SSE, enviar también
+        if (window.EventSource) {
+            // Aquí iría el código para enviar via SSE si tienes backend
+        }
+    } catch (error) {
+        console.error("Error al enviar notificación:", error);
+    }
+}
 
 // Llama a esta función al inicio
 document.addEventListener('DOMContentLoaded', function() {
@@ -164,6 +179,10 @@ firebase.auth().onAuthStateChanged(async (user) => {
           
           // Mostrar el nombre de usuario
           document.getElementById('username-display').textContent = currentUser.username;
+
+          // Iniciar listener y cargar notificaciones
+          listenForNotifications(currentUser.id);
+          loadUserNotifications(currentUser.id);
           
           // Cargar las salas disponibles
           loadUserRooms();
@@ -304,8 +323,11 @@ function showRoomsList() {
     const username = document.getElementById('register-username').value;
     const password = document.getElementById('register-password').value;
     const email = document.getElementById('register-email').value;
+    const name = document.getElementById('register-name').value;
+    const lastname = document.getElementById('register-lastname').value;
+    const phone = document.getElementById('register-phone').value;
     
-    if (!username || !password || !email) {
+    if (!username || !password || !email || !name || !lastname || !phone) {
         showNotification('Por favor, completa todos los campos.', '#e74c3c');
         return;
     }
@@ -322,9 +344,12 @@ function showRoomsList() {
         const users = await getUsers();
         const newUser = {
             id: users.length + 1,
+            name: name,
+            lastname: lastname,
             username: username,
-            password: password, // Nota: en producción, considera no almacenar contraseñas en texto plano
+            phone: phone,
             email: email,
+            password: password, // Nota: en producción, considera no almacenar contraseñas en texto plano
             uid: firebaseUser.uid, // Guardar el UID de Firebase Authentication
             emailVerified: false // Marcar como no verificado inicialmente
         };
@@ -338,7 +363,7 @@ function showRoomsList() {
         
     } catch (error) {
         console.error("Error al registrar usuario:", error);
-        showNotification('Error al registrar:  ' + error.message, '#e74c3c');
+        showNotification('Error al registrar: ' + error.message, '#e74c3c');
     }
 }
 // Función para mostrar el formulario de verificación
@@ -452,6 +477,12 @@ async function loginUser() {
         // Si está verificado, proceder con el inicio de sesión
         currentUser = user;
         sessionStorage.setItem('currentUserSession', JSON.stringify(user));
+
+         // Iniciar listener de notificaciones
+         listenForNotifications(user.id);
+
+         // Cargar notificaciones históricas
+         loadUserNotifications(user.id);
         
         // Mostrar el panel de usuario
         document.getElementById('login-form').classList.add('hidden');
@@ -473,6 +504,9 @@ async function loginUser() {
 }
   
 function logoutUser() {
+    if (currentUser) {
+        database.ref(`notifications/${currentUser.id}`).off();
+    }
     // Cerrar sesión en Firebase Authentication
     firebase.auth().signOut().then(() => {
         // Limpiar el usuario actual
@@ -749,22 +783,24 @@ async function verifyYapePayment() {
   
   // Funciones para actualizar listas
   async function updateUsersList() {
-      const users = await getUsers();
-      const tableBody = document.getElementById('users-table-body');
-      
-      tableBody.innerHTML = '';
-      
-      users.forEach(user => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-              <td>${user.id}</td>
-              <td>${user.username}</td>
-              <td>${user.email}</td>
-              <td><button class="delete-button" onclick="confirmDelete(${user.id}, 'user')">Eliminar</button></td>
-          `;
-          tableBody.appendChild(row);
-      });
-  }
+    const users = await getUsers();
+    const tableBody = document.getElementById('users-table-body');
+    
+    tableBody.innerHTML = '';
+    
+    users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.name || ''} ${user.lastname || ''}</td>
+            <td>${user.username}</td>
+            <td>${user.phone || 'N/A'}</td>
+            <td>${user.email}</td>
+            <td><button class="delete-button" onclick="confirmDelete(${user.id}, 'user')">Eliminar</button></td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
   
   async function updateRoomsList() {
     const rooms = await getRooms();
@@ -850,7 +886,9 @@ async function updateDatabaseView() {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${user.id}</td>
+            <td>${user.name || ''} ${user.lastname || ''}</td>
             <td>${user.username}</td>
+            <td>${user.phone || 'N/A'}</td>
             <td>${user.email}</td>
             <td>${user.password}</td>
             <td><button class="delete-button" onclick="confirmDelete(${user.id}, 'user')">Eliminar</button></td>
@@ -1137,52 +1175,40 @@ async function verifyBet(betId, isApproved, userId) {
             return;
         }
         
+        // Crear objeto de notificación
+        const notification = {
+            type: isApproved ? 'bet_approved' : 'bet_rejected',
+            message: isApproved ? 
+                `Tu apuesta de S/.${bet.amount} en ${bet.roomName} ha sido aprobada` : 
+                `Tu apuesta de S/.${bet.amount} en ${bet.roomName} ha sido rechazada`,
+            timestamp: Date.now(),
+            read: false,
+            betId: betId,
+            roomId: bet.roomId
+        };
+
         if (isApproved) {
             // Aprobar la apuesta
             const updates = {
                 status: 'verified',
-                verifiedBy: 'admin', // Aquí podrías poner el ID del admin
+                verifiedBy: 'admin',
                 verificationDate: Date.now()
             };
-
-            // Enviar notificación
-            await sendNotification(userId, {
-                type: 'success',
-                message: `Tu apuesta de S/.${bet.amount} en ${bet.roomName} ha sido aprobada`,
-                timestamp: Date.now()
-            });
             
             await database.ref(`bets/${betId}`).update(updates);
             
+            // Guardar notificación para el usuario
+            await database.ref(`notifications/${userId}`).push().set(notification);
+            
             showNotification(`Apuesta aprobada correctamente.`);
-            
-            try {
-                // Intentar notificar al usuario (pero no bloquear si falla)
-                await notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido aprobada.`);
-            } catch (notificationError) {
-                console.error("Error al notificar usuario:", notificationError);
-                // Continuamos aunque falle la notificación
-            }
-            
         } else {
-
-            await sendNotification(userId, {
-                type: 'error',
-                message: `Tu apuesta de S/.${bet.amount} en ${bet.roomName} ha sido rechazada`,
-                timestamp: Date.now()
-            });
             // Rechazar la apuesta - eliminarla de la base de datos
             await database.ref(`bets/${betId}`).remove();
             
-            showNotification(`Apuesta rechazada y eliminada.`);
+            // Guardar notificación para el usuario
+            await database.ref(`notifications/${userId}`).push().set(notification);
             
-            try {
-                // Intentar notificar al usuario (pero no bloquear si falla)
-                await notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido rechazada.`);
-            } catch (notificationError) {
-                console.error("Error al notificar usuario:", notificationError);
-                // Continuamos aunque falle la notificación
-            }
+            showNotification(`Apuesta rechazada y eliminada.`);
         }
         
         // Actualizar la lista de apuestas
@@ -1193,52 +1219,43 @@ async function verifyBet(betId, isApproved, userId) {
         showNotification('Error al verificar la apuesta: ' + error.message, '#e74c3c');
     }
 }
-// Función para enviar notificaciones
-async function sendNotification(userId, notification) {
-    try {
-        // 1. Guardar en el almacenamiento local (solución temporal)
-        let userNotifications = JSON.parse(localStorage.getItem(`notifications_${userId}`)) || [];
-        userNotifications.push(notification);
-        localStorage.setItem(`notifications_${userId}`, JSON.stringify(userNotifications));
-        
-        // 2. Si hay conexión SSE, enviar también
-        if (window.EventSource) {
-            // Aquí iría el código para enviar via SSE si tienes backend
-        }
-    } catch (error) {
-        console.error("Error al enviar notificación:", error);
-    }
-}
-// Función para verificar notificaciones (polling)
-function checkForLocalNotifications() {
-    if (!currentUser) return;
+async function loadUserNotifications(userId) {
+    const snapshot = await database.ref(`notifications/${userId}`).orderByChild('timestamp').once('value');
+    const notifications = snapshot.val() || {};
     
-    const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
+    const notificationsList = document.getElementById('notifications-list');
+    notificationsList.innerHTML = '';
     
-    // Mostrar solo las nuevas (usando timestamp)
-    const lastChecked = localStorage.getItem(`lastChecked_${currentUser.id}`) || 0;
-    const newNotifications = notifications.filter(n => n.timestamp > lastChecked);
-    
-    newNotifications.forEach(n => {
-        showNotification(n.message, n.type === 'success' ? '#2ecc71' : '#e74c3c');
+    Object.entries(notifications).reverse().forEach(([key, notification]) => {
+        const notificationItem = document.createElement('div');
+        notificationItem.className = `notification-item ${notification.type === 'bet_approved' ? 'approved' : 'rejected'}`;
+        notificationItem.innerHTML = `
+            <p>${notification.message}</p>
+            <small>${new Date(notification.timestamp).toLocaleString()}</small>
+        `;
+        notificationsList.appendChild(notificationItem);
     });
-    
-    // Actualizar último chequeo
-    if (newNotifications.length > 0) {
-        localStorage.setItem(`lastChecked_${currentUser.id}`, Date.now());
-        
-        // Limpiar notificaciones mostradas (opcional)
-        localStorage.setItem(`notifications_${currentUser.id}`, 
-            JSON.stringify(notifications.filter(n => n.timestamp <= lastChecked)));
-    }
-    
-    // Verificar cada 30 segundos
-    setTimeout(checkForLocalNotifications, 30000);
 }
 
-// Iniciar cuando el usuario entra
-if (currentUser) {
-    checkForLocalNotifications();
+function listenForNotifications(userId) {
+    // Escuchar nuevas notificaciones en tiempo real
+    database.ref(`notifications/${userId}`)
+        .orderByChild('timestamp')  // Ordenar por fecha
+        .limitToLast(1)  // Escuchar solo la última notificación
+        .on('child_added', (snapshot) => {
+            const notification = snapshot.val();
+            
+            if (!notification.read) {
+                // Mostrar notificación emergente
+                showNotification(notification.message, notification.type === 'bet_approved' ? '#2ecc71' : '#e74c3c');
+                
+                // Actualizar la lista de notificaciones en el panel
+                loadUserNotifications(userId);
+                
+                // Marcar como leída en la base de datos
+                database.ref(`notifications/${userId}/${snapshot.key}`).update({ read: true });
+            }
+        });
 }
 // Función para volver del panel de apuestas al panel de administrador
 function closeRoomBets() {
@@ -1282,67 +1299,3 @@ function showBettingControls(roomId) {
     controlsContainer.innerHTML = controlsHTML;
     document.getElementById('room-bets-section').prepend(controlsContainer);
 }
-
-// Funciones para manejar la UI de notificaciones
-function toggleNotifications() {
-    const panel = document.getElementById('notifications-panel');
-    panel.classList.toggle('hidden');
-    
-    if (!panel.classList.contains('hidden')) {
-        loadNotifications();
-        resetUnreadCount();
-    }
-}
-
-function closeNotifications() {
-    document.getElementById('notifications-panel').classList.add('hidden');
-}
-
-function loadNotifications() {
-    if (!currentUser) return;
-    
-    const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
-    const list = document.getElementById('notifications-list');
-    
-    list.innerHTML = '';
-    
-    if (notifications.length === 0) {
-        list.innerHTML = '<p class="no-notifications">No tienes notificaciones</p>';
-        return;
-    }
-    
-    notifications.reverse().forEach(notif => {
-        const item = document.createElement('div');
-        item.className = `notification-item ${notif.type}`;
-        item.innerHTML = `
-            <p>${notif.message}</p>
-            <small>${new Date(notif.timestamp).toLocaleString()}</small>
-        `;
-        list.appendChild(item);
-    });
-}
-
-function resetUnreadCount() {
-    localStorage.setItem(`lastChecked_${currentUser.id}`, Date.now());
-    updateUnreadBadge();
-}
-
-function updateUnreadBadge() {
-    if (!currentUser) return;
-    
-    const lastChecked = localStorage.getItem(`lastChecked_${currentUser.id}`) || 0;
-    const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
-    const unread = notifications.filter(n => n.timestamp > lastChecked).length;
-    
-    const badge = document.getElementById('unread-count');
-    badge.textContent = unread;
-    
-    if (unread > 0) {
-        badge.classList.remove('hidden');
-    } else {
-        badge.classList.add('hidden');
-    }
-}
-
-// Actualizar cada minuto
-setInterval(updateUnreadBadge, 60000);

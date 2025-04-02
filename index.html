@@ -33,19 +33,6 @@
                 <a href="#" onclick="showMainOptions()">Volver al inicio</a>
             </p>
         </div>
-
-        <!-- Añade esto en tu HTML -->
-        <div id="notifications-panel" class="notifications-panel hidden">
-            <div class="notifications-header">
-                <h3>Tus Notificaciones</h3>
-                <button onclick="closeNotifications()">×</button>
-            </div>
-            <div id="notifications-list" class="notifications-list"></div>
-        </div>
-        <button id="notifications-bell" class="notifications-bell" onclick="toggleNotifications()">
-            🔔 <span id="unread-count" class="unread-count hidden">0</span>
-        </button>
-
         <!-- Panel de Usuario -->
         <div id="user-panel" class="user-panel">
             <div class="welcome-message" id="user-welcome">Bienvenido, <span id="username-display"></span></div>
@@ -61,22 +48,43 @@
                     <!-- Las salas se añadirán dinámicamente -->
                 </div>
             </div>
+            <div class="notifications-panel">
+                <h3>Tus Notificaciones</h3>
+                <div id="notifications-list" class="notifications-list">
+                    <!-- Notificaciones se cargarán aquí -->
+                </div>
+            </div>
         </div>
         
         <!-- Formulario de Registro -->
         <div id="register-form" class="form-container hidden">
             <h2 class="form-title">Registrarse</h2>
             <div class="input-group">
+                <label for="register-name">Nombre:</label>
+                <input type="text" id="register-name" required>
+            </div>
+            <div class="input-group">
+                <label for="register-lastname">Apellido:</label>
+                <input type="text" id="register-lastname" required>
+            </div>
+            <div class="input-group">
                 <label for="register-username">Usuario:</label>
                 <input type="text" id="register-username" required>
             </div>
             <div class="input-group">
-                <label for="register-password">Contraseña:</label>
-                <input type="password" id="register-password" required>
+                <label for="register-phone">Número (+51):</label>
+                <div style="display: flex;">
+                    <span style="padding: 10px; background: #eee; border: 1px solid #ddd; border-right: none; border-radius: 4px 0 0 4px;">+51</span>
+                    <input type="tel" id="register-phone" required style="border-radius: 0 4px 4px 0; flex: 1;">
+                </div>
             </div>
             <div class="input-group">
                 <label for="register-email">Email:</label>
                 <input type="email" id="register-email" required>
+            </div>
+            <div class="input-group">
+                <label for="register-password">Contraseña:</label>
+                <input type="password" id="register-password" required>
             </div>
             <button class="submit-button" onclick="registerUser()">Registrarse</button>
             <p style="text-align: center; margin-top: 15px;">
@@ -126,7 +134,9 @@
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Nombre Completo</th>
                         <th>Usuario</th>
+                        <th>Teléfono</th>
                         <th>Email</th>
                         <th>Contraseña</th>
                         <th>Acciones</th>
@@ -199,7 +209,9 @@
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Nombre Completo</th>
                             <th>Usuario</th>
+                            <th>Teléfono</th>
                             <th>Email</th>
                             <th>Acciones</th>
                         </tr>

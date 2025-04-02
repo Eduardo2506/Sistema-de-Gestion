@@ -34,6 +34,18 @@
             </p>
         </div>
 
+        <!-- Añade esto en tu HTML -->
+        <div id="notifications-panel" class="notifications-panel hidden">
+            <div class="notifications-header">
+                <h3>Tus Notificaciones</h3>
+                <button onclick="closeNotifications()">×</button>
+            </div>
+            <div id="notifications-list" class="notifications-list"></div>
+        </div>
+        <button id="notifications-bell" class="notifications-bell" onclick="toggleNotifications()">
+            🔔 <span id="unread-count" class="unread-count hidden">0</span>
+        </button>
+
         <!-- Panel de Usuario -->
         <div id="user-panel" class="user-panel">
             <div class="welcome-message" id="user-welcome">Bienvenido, <span id="username-display"></span></div>

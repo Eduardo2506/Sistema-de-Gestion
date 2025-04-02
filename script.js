@@ -173,20 +173,29 @@ firebase.auth().onAuthStateChanged(async (user) => {
       
       // Verificar si hay una sesión de administrador activa
       const adminSession = sessionStorage.getItem('adminSession');
-      
+    
       if (adminSession === 'true') {
-          // Mostrar el panel de administrador
-          document.getElementById('main-options').classList.add('hidden');
-          document.getElementById('login-form').classList.add('hidden');
-          document.getElementById('register-form').classList.add('hidden');
-          document.getElementById('admin-login-form').classList.add('hidden');
-          document.getElementById('admin-panel').style.display = 'block';
-          
-          // Actualizar la lista de salas
-          updateRoomsList();
-          
-          return;
-      }
+        // Mostrar el panel de administrador
+        document.getElementById('main-options').classList.add('hidden');
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('register-form').classList.add('hidden');
+        document.getElementById('admin-login-form').classList.add('hidden');
+        
+        // Verificar si estaba viendo la base de datos
+        const lastView = sessionStorage.getItem('adminView');
+        if (lastView === 'database') {
+            showDatabase();
+        } else {
+            document.getElementById('admin-panel').style.display = 'block';
+            if (lastView === 'users') {
+                showUsersList();
+            } else {
+                showRoomsList();
+            }
+        }
+        
+        return;
+    }
       
       // Si no hay sesiones activas, mostrar las opciones principales
       showMainOptions();
@@ -225,32 +234,47 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
   
   function showDatabase() {
-      document.getElementById('admin-panel').style.display = 'none';
-      document.getElementById('database-section').style.display = 'block';
-      updateDatabaseView();
-  }
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('database-section').style.display = 'block';
+    
+    // Guardar el estado en sessionStorage
+    sessionStorage.setItem('adminView', 'database');
+    
+    updateDatabaseView();
+}
   
-  function closeDatabase() {
-      document.getElementById('database-section').style.display = 'none';
-      document.getElementById('admin-panel').style.display = 'block';
-  }
+function closeDatabase() {
+    document.getElementById('database-section').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    
+    // Restaurar la vista anterior de admin
+    const lastView = sessionStorage.getItem('adminView') || 'rooms';
+    if (lastView === 'users') {
+        showUsersList();
+    } else {
+        showRoomsList();
+    }
+}
   
   // Funciones para el panel de administrador
   function showUsersList() {
-      document.getElementById('users-list-section').classList.remove('hidden');
-      document.getElementById('rooms-list-section').classList.add('hidden');
-      
-      // Actualizar la lista de usuarios
-      updateUsersList();
-  }
-  
-  function showRoomsList() {
-      document.getElementById('users-list-section').classList.add('hidden');
-      document.getElementById('rooms-list-section').classList.remove('hidden');
-      
-      // Actualizar la lista de salas
-      updateRoomsList();
-  }
+    document.getElementById('users-list-section').classList.remove('hidden');
+    document.getElementById('rooms-list-section').classList.add('hidden');
+    
+    // Guardar el estado en sessionStorage
+    sessionStorage.setItem('adminView', 'users');
+    
+    updateUsersList();
+}
+function showRoomsList() {
+    document.getElementById('users-list-section').classList.add('hidden');
+    document.getElementById('rooms-list-section').classList.remove('hidden');
+    
+    // Guardar el estado en sessionStorage
+    sessionStorage.setItem('adminView', 'rooms');
+    
+    updateRoomsList();
+}
   
   // Funciones para Modal
   function openCreateRoomModal() {
@@ -763,7 +787,55 @@ async function verifyYapePayment() {
         tableBody.appendChild(row);
     });
 }
-  
+async function notifyUser(userId, message) {
+    try {
+        // Obtener todos los usuarios
+        const users = await getUsers();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            console.warn(`Usuario con ID ${userId} no encontrado para notificación`);
+            return;
+        }
+        
+        // Aquí podrías implementar diferentes métodos de notificación:
+        // - Notificaciones en la interfaz cuando el usuario inicie sesión
+        // - Envío de correo electrónico
+        // - Notificaciones push, etc.
+        
+        console.log(`Notificación para usuario ${user.username}: ${message}`);
+        
+        // Por ahora simplemente mostramos un log
+        // En una implementación real, podrías guardar estas notificaciones en la base de datos
+        // para mostrarlas cuando el usuario inicie sesión
+        
+    } catch (error) {
+        console.error("Error al notificar usuario:", error);
+        // No mostramos notificación al usuario para no interrumpir el flujo principal
+    }
+}
+async function openEditRoomModal(roomId) {
+    try {
+        const rooms = await getRooms();
+        const roomToEdit = rooms.find(room => room.id === roomId);
+        
+        if (!roomToEdit) {
+            showNotification('No se pudo encontrar la sala para editar.', '#e74c3c');
+            return;
+        }
+        
+        // Llenar el formulario de edición con los datos de la sala
+        document.getElementById('edit-room-id').value = roomToEdit.id;
+        document.getElementById('edit-room-name').value = roomToEdit.name;
+        document.getElementById('edit-max-bet-amount').value = roomToEdit.maxBetAmount;
+        
+        // Mostrar el modal
+        document.getElementById('edit-room-modal').style.display = 'block';
+    } catch (error) {
+        console.error("Error al abrir modal de edición:", error);
+        showNotification('Error al preparar la edición: ' + error.message, '#e74c3c');
+    }
+}
 async function updateDatabaseView() {
     const users = await getUsers();
     const rooms = await getRooms();
@@ -902,9 +974,10 @@ async function updateDatabaseView() {
   
   async function updateRoom() {
     const roomId = parseInt(document.getElementById('edit-room-id').value);
-    const newName = document.getElementById('edit-room-name').value;
+    const newName = document.getElementById('edit-room-name').value.trim();
     const newMaxBetAmount = parseFloat(document.getElementById('edit-max-bet-amount').value);
     
+    // Validaciones
     if (!newName) {
         showNotification('Por favor, ingresa un nombre para la sala.', '#e74c3c');
         return;
@@ -915,28 +988,51 @@ async function updateDatabaseView() {
         return;
     }
     
-    // Obtener salas actuales
-    let rooms = await getRooms();
-    
-    // Encontrar y actualizar la sala
-    rooms = rooms.map(room => {
-        if (room.id === roomId) {
-            return { 
-                ...room, 
-                name: newName,
-                maxBetAmount: newMaxBetAmount
-            };
+    try {
+        // Obtener salas actuales
+        let rooms = await getRooms();
+        
+        // Verificar si el ID existe
+        const roomExists = rooms.some(room => room.id === roomId);
+        if (!roomExists) {
+            showNotification('La sala que intentas editar no existe.', '#e74c3c');
+            return;
         }
-        return room;
-    });
-    
-    // Guardar cambios
-    await saveRooms(rooms);
-    
-    showNotification('Sala actualizada exitosamente.');
-    
-    // Cerrar modal
-    closeEditRoomModal();
+        
+        // Actualizar la sala
+        rooms = rooms.map(room => {
+            if (room.id === roomId) {
+                return { 
+                    ...room, 
+                    name: newName,
+                    maxBetAmount: newMaxBetAmount
+                };
+            }
+            return room;
+        });
+        
+        // Guardar cambios
+        await saveRooms(rooms);
+        
+        showNotification('Sala actualizada exitosamente.');
+        
+        // Cerrar modal y actualizar la vista
+        closeEditRoomModal();
+        
+        // Actualizar la vista según donde estemos
+        const currentView = sessionStorage.getItem('adminView');
+        if (currentView === 'database') {
+            updateDatabaseView();
+        } else if (currentView === 'users') {
+            updateUsersList();
+        } else {
+            updateRoomsList();
+        }
+        
+    } catch (error) {
+        console.error("Error al actualizar sala:", error);
+        showNotification('Error al actualizar sala: ' + error.message, '#e74c3c');
+    }
 }
 // Función para resetear el modal de crear sala
 function closeCreateRoomModal() {
@@ -947,6 +1043,13 @@ function closeCreateRoomModal() {
 
 async function viewRoomBets(roomId) {
     try {
+
+        // Limpiar controles existentes primero
+        const existingControls = document.querySelector('.betting-controls');
+        if (existingControls) {
+            existingControls.remove();
+        }
+        
         // Obtener las salas
         const rooms = await getRooms();
         
@@ -977,9 +1080,10 @@ async function viewRoomBets(roomId) {
             }
         }
         
-        // Mostrar las apuestas en la tabla
-        const betsTableBody = document.getElementById('room-bets-table').querySelector('tbody');
-        betsTableBody.innerHTML = '';
+        
+         // Mostrar las apuestas en la tabla
+         const betsTableBody = document.getElementById('room-bets-table').querySelector('tbody');
+         betsTableBody.innerHTML = '';
         
         if (roomBets.length === 0) {
             betsTableBody.innerHTML = '<tr><td colspan="8" class="no-bets">No hay apuestas en esta sala.</td></tr>';
@@ -1040,21 +1144,45 @@ async function verifyBet(betId, isApproved, userId) {
                 verifiedBy: 'admin', // Aquí podrías poner el ID del admin
                 verificationDate: Date.now()
             };
+
+            // Enviar notificación
+            await sendNotification(userId, {
+                type: 'success',
+                message: `Tu apuesta de S/.${bet.amount} en ${bet.roomName} ha sido aprobada`,
+                timestamp: Date.now()
+            });
             
             await database.ref(`bets/${betId}`).update(updates);
             
             showNotification(`Apuesta aprobada correctamente.`);
             
-            // Notificar al usuario
-            notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido aprobada.`);
+            try {
+                // Intentar notificar al usuario (pero no bloquear si falla)
+                await notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido aprobada.`);
+            } catch (notificationError) {
+                console.error("Error al notificar usuario:", notificationError);
+                // Continuamos aunque falle la notificación
+            }
+            
         } else {
+
+            await sendNotification(userId, {
+                type: 'error',
+                message: `Tu apuesta de S/.${bet.amount} en ${bet.roomName} ha sido rechazada`,
+                timestamp: Date.now()
+            });
             // Rechazar la apuesta - eliminarla de la base de datos
             await database.ref(`bets/${betId}`).remove();
             
             showNotification(`Apuesta rechazada y eliminada.`);
             
-            // Notificar al usuario
-            notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido rechazada.`);
+            try {
+                // Intentar notificar al usuario (pero no bloquear si falla)
+                await notifyUser(userId, `Tu apuesta de S/.${bet.amount} en la sala ${bet.roomName} ha sido rechazada.`);
+            } catch (notificationError) {
+                console.error("Error al notificar usuario:", notificationError);
+                // Continuamos aunque falle la notificación
+            }
         }
         
         // Actualizar la lista de apuestas
@@ -1065,7 +1193,53 @@ async function verifyBet(betId, isApproved, userId) {
         showNotification('Error al verificar la apuesta: ' + error.message, '#e74c3c');
     }
 }
+// Función para enviar notificaciones
+async function sendNotification(userId, notification) {
+    try {
+        // 1. Guardar en el almacenamiento local (solución temporal)
+        let userNotifications = JSON.parse(localStorage.getItem(`notifications_${userId}`)) || [];
+        userNotifications.push(notification);
+        localStorage.setItem(`notifications_${userId}`, JSON.stringify(userNotifications));
+        
+        // 2. Si hay conexión SSE, enviar también
+        if (window.EventSource) {
+            // Aquí iría el código para enviar via SSE si tienes backend
+        }
+    } catch (error) {
+        console.error("Error al enviar notificación:", error);
+    }
+}
+// Función para verificar notificaciones (polling)
+function checkForLocalNotifications() {
+    if (!currentUser) return;
+    
+    const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
+    
+    // Mostrar solo las nuevas (usando timestamp)
+    const lastChecked = localStorage.getItem(`lastChecked_${currentUser.id}`) || 0;
+    const newNotifications = notifications.filter(n => n.timestamp > lastChecked);
+    
+    newNotifications.forEach(n => {
+        showNotification(n.message, n.type === 'success' ? '#2ecc71' : '#e74c3c');
+    });
+    
+    // Actualizar último chequeo
+    if (newNotifications.length > 0) {
+        localStorage.setItem(`lastChecked_${currentUser.id}`, Date.now());
+        
+        // Limpiar notificaciones mostradas (opcional)
+        localStorage.setItem(`notifications_${currentUser.id}`, 
+            JSON.stringify(notifications.filter(n => n.timestamp <= lastChecked)));
+    }
+    
+    // Verificar cada 30 segundos
+    setTimeout(checkForLocalNotifications, 30000);
+}
 
+// Iniciar cuando el usuario entra
+if (currentUser) {
+    checkForLocalNotifications();
+}
 // Función para volver del panel de apuestas al panel de administrador
 function closeRoomBets() {
     document.getElementById('room-bets-section').style.display = 'none';
@@ -1108,3 +1282,67 @@ function showBettingControls(roomId) {
     controlsContainer.innerHTML = controlsHTML;
     document.getElementById('room-bets-section').prepend(controlsContainer);
 }
+
+// Funciones para manejar la UI de notificaciones
+function toggleNotifications() {
+    const panel = document.getElementById('notifications-panel');
+    panel.classList.toggle('hidden');
+    
+    if (!panel.classList.contains('hidden')) {
+        loadNotifications();
+        resetUnreadCount();
+    }
+}
+
+function closeNotifications() {
+    document.getElementById('notifications-panel').classList.add('hidden');
+}
+
+function loadNotifications() {
+    if (!currentUser) return;
+    
+    const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
+    const list = document.getElementById('notifications-list');
+    
+    list.innerHTML = '';
+    
+    if (notifications.length === 0) {
+        list.innerHTML = '<p class="no-notifications">No tienes notificaciones</p>';
+        return;
+    }
+    
+    notifications.reverse().forEach(notif => {
+        const item = document.createElement('div');
+        item.className = `notification-item ${notif.type}`;
+        item.innerHTML = `
+            <p>${notif.message}</p>
+            <small>${new Date(notif.timestamp).toLocaleString()}</small>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function resetUnreadCount() {
+    localStorage.setItem(`lastChecked_${currentUser.id}`, Date.now());
+    updateUnreadBadge();
+}
+
+function updateUnreadBadge() {
+    if (!currentUser) return;
+    
+    const lastChecked = localStorage.getItem(`lastChecked_${currentUser.id}`) || 0;
+    const notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
+    const unread = notifications.filter(n => n.timestamp > lastChecked).length;
+    
+    const badge = document.getElementById('unread-count');
+    badge.textContent = unread;
+    
+    if (unread > 0) {
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+// Actualizar cada minuto
+setInterval(updateUnreadBadge, 60000);

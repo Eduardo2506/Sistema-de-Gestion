@@ -46,6 +46,8 @@ const firebaseConfig = {
         }
     });
 }
+
+
 async function sendNotification(userId, notification) {
     try {
         // 1. Guardar en el almacenamiento local (solución temporal)
@@ -61,6 +63,8 @@ async function sendNotification(userId, notification) {
         console.error("Error al enviar notificación:", error);
     }
 }
+
+document.addEventListener('DOMContentLoaded', createParticles);
 
 // Llama a esta función al inicio
 document.addEventListener('DOMContentLoaded', function() {
@@ -123,6 +127,38 @@ firebase.auth().onAuthStateChanged(async (user) => {
         console.log("Usuario no autenticado");
     }
 }); 
+
+function createParticles() {
+    const particleCount = 500;
+    const body = document.body;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        // Tamaño aleatorio entre 1px y 5px
+        const size = Math.random() * 4 + 1;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // Posición inicial aleatoria
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.bottom = `-10px`;
+        
+        // Opacidad aleatoria
+        particle.style.opacity = Math.random() * 0.5 + 0.1;
+        
+        // Duración de animación aleatoria (10s a 30s)
+        const duration = Math.random() * 20 + 10;
+        particle.style.animationDuration = `${duration}s`;
+        
+        // Retraso de animación aleatorio
+        particle.style.animationDelay = `${Math.random() * 10}s`;
+        particle.style.setProperty('--wind-direction', Math.random() > 0.5 ? 1 : -1);
+        
+        body.appendChild(particle);
+    }
+}
   // Escuchar cambios en la base de datos
   database.ref().on('value', (snapshot) => {
       if (document.getElementById('admin-panel').style.display === 'block') {
@@ -222,20 +258,25 @@ firebase.auth().onAuthStateChanged(async (user) => {
   
   // Funciones para mostrar/ocultar formularios
   function showMainOptions() {
-      document.getElementById('main-options').classList.remove('hidden');
-      document.getElementById('login-form').classList.add('hidden');
-      document.getElementById('register-form').classList.add('hidden');
-      document.getElementById('admin-login-form').classList.add('hidden');
-      document.getElementById('admin-panel').style.display = 'none';
-      document.getElementById('user-panel').style.display = 'none';
-      document.getElementById('database-section').style.display = 'none';
-  }
+    document.getElementById('main-options').classList.remove('hidden');
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('register-form').classList.add('hidden');
+    document.getElementById('admin-login-form').classList.add('hidden');
+    document.getElementById('verification-form').classList.add('hidden'); // Añade esta línea
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('user-panel').style.display = 'none';
+    document.getElementById('database-section').style.display = 'none';
+    document.getElementById('main-title').style.display = 'block';
+    document.querySelector('.header').classList.remove('wide-form');
+}
   
   function showLoginForm() {
       document.getElementById('main-options').classList.add('hidden');
       document.getElementById('login-form').classList.remove('hidden');
       document.getElementById('register-form').classList.add('hidden');
       document.getElementById('admin-login-form').classList.add('hidden');
+      document.getElementById('main-title').style.display = 'none'; // Ocultar el título principal
+      
   }
   
   function showRegisterForm() {
@@ -243,6 +284,8 @@ firebase.auth().onAuthStateChanged(async (user) => {
       document.getElementById('login-form').classList.add('hidden');
       document.getElementById('register-form').classList.remove('hidden');
       document.getElementById('admin-login-form').classList.add('hidden');
+      document.getElementById('main-title').style.display = 'none'; // Ocultar el título principal
+      document.querySelector('.header').classList.add('wide-form');
   }
   
   function showAdminLoginForm() {
@@ -250,6 +293,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
       document.getElementById('login-form').classList.add('hidden');
       document.getElementById('register-form').classList.add('hidden');
       document.getElementById('admin-login-form').classList.remove('hidden');
+      document.getElementById('main-title').style.display = 'none'; // Ocultar el título principal
   }
   
   function showDatabase() {
@@ -374,6 +418,7 @@ function showVerificationForm(email) {
     document.getElementById('register-form').classList.add('hidden');
     document.getElementById('admin-login-form').classList.add('hidden');
     document.getElementById('verification-form').classList.remove('hidden');
+    document.querySelector('.header').classList.add('wide-form');
     
     // Configurar evento para reenviar correo
     document.getElementById('resend-verification').addEventListener('click', function(event) {
@@ -1299,3 +1344,4 @@ function showBettingControls(roomId) {
     controlsContainer.innerHTML = controlsHTML;
     document.getElementById('room-bets-section').prepend(controlsContainer);
 }
+

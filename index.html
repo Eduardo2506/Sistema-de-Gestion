@@ -8,15 +8,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Sistema de Gestión</h1>
-        </div>
-        
-        <div id="main-options" class="options">
-            <button class="option-button" onclick="showLoginForm()">Iniciar Sesión</button>
-            <button class="option-button" onclick="showRegisterForm()">Registrarse</button>
-            <button class="option-button" onclick="showAdminLoginForm()">Admin</button>
-        </div>
-        
+            <div class="logo"></div>
+            <h1 id="main-title" class="main-title">Natabet</h1>
+            
+            <div id="main-options" class="btn-group">
+                <button class="btn" onclick="showLoginForm()">Iniciar Sesión</button>
+                <button class="btn" onclick="showRegisterForm()">Registrarse</button>
+                <button class="btn admin" onclick="showAdminLoginForm()">Admin</button>
+            </div>
+            
         <!-- Formulario de Inicio de Sesión -->
         <div id="login-form" class="form-container hidden">
             <h2 class="form-title">Iniciar Sesión</h2>
@@ -32,28 +32,6 @@
             <p style="text-align: center; margin-top: 15px;">
                 <a href="#" onclick="showMainOptions()">Volver al inicio</a>
             </p>
-        </div>
-        <!-- Panel de Usuario -->
-        <div id="user-panel" class="user-panel">
-            <div class="welcome-message" id="user-welcome">Bienvenido, <span id="username-display"></span></div>
-            
-            <div class="user-header">
-                <h2>Salas Disponibles</h2>
-                <button class="user-button" style="background-color: #e74c3c;" onclick="logoutUser()">Cerrar Sesión</button>
-            </div>
-            
-            <!-- Lista de Salas para el Usuario -->
-            <div id="user-rooms-container" class="user-content">
-                <div id="rooms-grid" class="rooms-grid">
-                    <!-- Las salas se añadirán dinámicamente -->
-                </div>
-            </div>
-            <div class="notifications-panel">
-                <h3>Tus Notificaciones</h3>
-                <div id="notifications-list" class="notifications-list">
-                    <!-- Notificaciones se cargarán aquí -->
-                </div>
-            </div>
         </div>
         
         <!-- Formulario de Registro -->
@@ -91,6 +69,24 @@
                 <a href="#" onclick="showMainOptions()">Volver al inicio</a>
             </p>
         </div>
+
+        <!-- Formulario de Admin Login -->
+        <div id="admin-login-form" class="form-container hidden">
+            <h2 class="form-title">Acceso Administrador</h2>
+            <div class="input-group">
+                <label for="admin-username">Usuario Admin:</label>
+                <input type="text" id="admin-username" required>
+            </div>
+            <div class="input-group">
+                <label for="admin-password">Contraseña Admin:</label>
+                <input type="password" id="admin-password" required>
+            </div>
+            <button class="submit-button" onclick="loginAdmin()">Acceder</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
+            </p>
+        </div>
+
         <!-- Formulario de Verificación de Email -->
         <div id="verification-form" class="form-container hidden">
             <h2 class="form-title">Verificación de Correo</h2>
@@ -108,22 +104,33 @@
             <p style="text-align: center; margin-top: 15px;">
                 <a href="#" onclick="showMainOptions()">Volver al inicio</a>
             </p>
+        </div>        
+
+        <div class="footer">
+                Copyright &copy; 2025
+            </div>
         </div>
-        <!-- Formulario de Admin Login -->
-        <div id="admin-login-form" class="form-container hidden">
-            <h2 class="form-title">Acceso Administrador</h2>
-            <div class="input-group">
-                <label for="admin-username">Usuario Admin:</label>
-                <input type="text" id="admin-username" required>
+        <!-- Panel de Usuario -->
+        <div id="user-panel" class="user-panel">
+            <div class="welcome-message" id="user-welcome">Bienvenido, <span id="username-display"></span></div>
+            
+            <div class="user-header">
+                <h2>Salas Disponibles</h2>
+                <button class="user-button" style="background-color: #e74c3c;" onclick="logoutUser()">Cerrar Sesión</button>
             </div>
-            <div class="input-group">
-                <label for="admin-password">Contraseña Admin:</label>
-                <input type="password" id="admin-password" required>
+            
+            <!-- Lista de Salas para el Usuario -->
+            <div id="user-rooms-container" class="user-content">
+                <div id="rooms-grid" class="rooms-grid">
+                    <!-- Las salas se añadirán dinámicamente -->
+                </div>
             </div>
-            <button class="submit-button" onclick="loginAdmin()">Acceder</button>
-            <p style="text-align: center; margin-top: 15px;">
-                <a href="#" onclick="showMainOptions()">Volver al inicio</a>
-            </p>
+            <div class="notifications-panel">
+                <h3>Tus Notificaciones</h3>
+                <div id="notifications-list" class="notifications-list">
+                    <!-- Notificaciones se cargarán aquí -->
+                </div>
+            </div>
         </div>
         
         <!-- Base de Datos -->

@@ -1,30 +1,199 @@
+
 * {
     box-sizing: border-box;
     font-family: Arial, sans-serif;
 }
 body {
+    background-image: 
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.03"><path d="M20,20 Q50,10 80,20 T100,50 Q90,80 50,90 T0,50 Q10,20 20,20 Z" fill="black"/></svg>'),
+        radial-gradient(ellipse at bottom, #1a0000 0%, #000 100%);
+    background-size: 200px, cover;
     margin: 0;
     padding: 0;
-    background-color: #f5f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a1a;
+    overflow: hidden; /* Para evitar barras de desplazamiento */
+    position: relative;
 }
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
+body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(ellipse at center, rgba(255,50,50,0.2) 0%, rgba(0,0,0,0) 70%),
+        radial-gradient(ellipse at bottom, rgba(255,100,50,0.2) 0%, rgba(0,0,0,0) 70%);
+    z-index: -2;
+}
+body::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, rgba(255,50,50,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+    animation: heatHaze 5s infinite alternate;
+}
+
+@keyframes heatHaze {
+    0% { transform: translateY(0) scale(1); opacity: 0.1; }
+    100% { transform: translateY(-20px) scale(1.02); opacity: 0.3; }
+}
+@keyframes fireGlow {
+    0%, 100% { box-shadow: 0 0 50px 20px rgba(255, 80, 0, 0.1); }
+    50% { box-shadow: 0 0 70px 30px rgba(255, 40, 0, 0.3); }
+}
+
+.header {
+    animation: fireGlow 3s infinite ease-in-out;
+}
+/* Efecto de parpadeo aleatorio para algunas partículas */
+@keyframes flicker {
+    0%, 100% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.particle:nth-child(3n) {
+    animation-name: float, flicker;
+    animation-duration: inherit, 2s;
+    animation-iteration-count: infinite, infinite;
+}
+/* Animación de las partículas */
+.particle {
+    position: absolute;
+    background-color: rgba(255, 100, 50, 0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: -1;
+    animation: float linear infinite;
+}
+.particle.ember {
+    background: radial-gradient(circle, rgba(255,100,50,0.8) 0%, rgba(255,50,0,0.5) 70%);
+    box-shadow: 0 0 10px rgba(255, 80, 0, 0.7);
+}
+
+.particle.ash {
+    background: radial-gradient(circle, rgba(150,150,150,0.5) 0%, rgba(50,50,50,0.3) 70%);
+}
+@keyframes heatWave {
+    0%, 100% {
+        background-color: rgba(26, 26, 26, 0.9);
+    }
+    50% {
+        background-color: rgba(40, 20, 20, 0.9);
+    }
+}
+
+/* Crea diferentes tamaños y animaciones para las partículas */
+@keyframes float {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-1000px) translateX(calc(var(--wind-direction) * 100px)) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Esto hace que ocupe al menos toda la altura de la ventana */
     padding: 20px;
+    margin: 0 auto;
 }
 .header {
-    background-color: #3498db;
-    color: white;
-    padding: 20px;
+    width: 100%;
+    max-width: 340px;
+    padding: 30px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
     text-align: center;
-    border-radius: 5px;
-    margin-bottom: 20px;
+    border: 1px solid #ff3333;
+    margin: 0; /* Elimina el margen superior que tenía */
 }
+
 .options {
     display: flex;
     justify-content: space-around;
     margin-bottom: 30px;
 }
+.main-title {
+    color: #ffffff;
+    font-size: 28px;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+  }
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    border: 2px solid #ff3333;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+  }
+  .btn:hover {
+    background-color: #ff3333;
+    color: #1a1a1a;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+    transform: translateY(-3px);
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn.admin {
+    background-color: rgba(22, 20, 146, 0.2);
+    border-color: rgba(255, 51, 51, 0.7);
+  }
+  .btn.admin:hover {
+    background-color: #7e2f17;
+    color: #1a1a1a;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+    transform: translateY(-3px);
+  }
+  .footer {
+    margin-top: 30px;
+    color: #888;
+    font-size: 12px;
+    text-align: center;
+  }
+.logo {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23ff3333' d='M50 10L10 50l40 40 40-40L50 10zm0 15l25 25-25 25-25-25 25-25z'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
 .option-button {
     padding: 15px 30px;
     font-size: 18px;
@@ -39,12 +208,54 @@ body {
     background-color: #2980b9;
 }
 .form-container {
-    background-color: white;
+background-color: rgba(59, 58, 58, 0.349);
+    /* border: 1px solid #ff3333; */
+    /* box-shadow: 0 0 20px rgba(255, 0, 0, 0.5); */
+    margin-top: 20px;
     padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    max-width: 500px;
-    margin: 0 auto;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.header .form-container .form-title {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+    margin-bottom: 50px;
+}
+.header .form-container .input-group label {
+    color: #ffffff;
+}
+
+.header .form-container .input-group input {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid #ff3333;
+    color: #ffffff;
+    padding: 12px;
+}
+
+.header .form-container .submit-button {
+    background-color: #ff3333;
+    color: #1a1a1a;
+    border: none;
+    padding: 12px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.header .form-container .submit-button:hover {
+    background-color: #ff5555;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+}
+
+.header .form-container a {
+    color: #ff3333;
+    text-decoration: none;
+}
+
+.header .form-container a:hover {
+    text-decoration: underline;
 }
 .form-title {
     text-align: center;
@@ -340,19 +551,19 @@ body {
 }
 
 .verification-message {
-    background-color: #f8f9fa;
+    background-color: #d8484831;
     padding: 15px;
     border-radius: 5px;
     margin-bottom: 20px;
-    border-left: 4px solid #3498db;
-    color: #555;
+    /* border-left: 4px solid #3498db; */
+    color: #fff7f7;
 }
 
 .verification-instruction {
     font-weight: bold;
     text-align: center;
     margin-bottom: 20px;
-    color: #333;
+    color: #ffffff;
 }
 
 #verification-email {
@@ -716,4 +927,242 @@ button:disabled {
 
 .notification-item.rejected {
     border-left-color: #e74c3c;
+}
+/* Mostrar el título solo en la vista principal */
+.header .main-title {
+    display: block;
+}
+
+/* Ocultar el título en los formularios */
+.header .form-container .main-title {
+    display: none;
+}
+/* Efecto neón animado */
+.header {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 217, 0, 0.192) 0%,
+        rgba(255, 255, 255, 0) 50%,
+        rgba(255, 217, 0, 0.192) 100%
+    );
+    position: relative;
+    overflow: hidden;
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: -100%;
+    width: 300%;
+    height: 300%;
+    background: linear-gradient(
+        to bottom right,
+        transparent 45%,
+        rgba(255, 215, 0, 0.3) 50%,
+        transparent 55%
+    );
+    transform: rotate(30deg);
+    animation: goldFlow 8s linear infinite;
+    z-index: 0;
+}
+
+@keyframes goldFlow {
+    0% { transform: translateY(-100%) rotate(30deg); }
+    100% { transform: translateY(100%) rotate(30deg); }
+}
+
+.header > * {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes neonBorder {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.header {
+    box-shadow: 
+        0 0 5px rgba(255, 51, 51, 0.5),
+        0 0 10px rgba(255, 51, 51, 0.3),
+        0 0 15px rgba(255, 51, 51, 0.2),
+        0 0 20px rgba(255, 51, 51, 0.1);
+}
+
+.modal-content {
+    box-shadow: 
+        0 0 5px rgba(255, 51, 51, 0.5),
+        0 0 10px rgba(255, 51, 51, 0.3),
+        0 0 15px rgba(255, 51, 51, 0.2),
+        0 0 20px rgba(255, 51, 51, 0.1);
+}
+
+/* Efecto similar para los modales */
+.modal-content::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        to bottom right,
+        transparent, transparent, transparent,
+        #ff3333, transparent, transparent, transparent
+    );
+    transform: rotate(0deg);
+    animation: neonBorder 4s linear infinite;
+    opacity: 0.7;
+    z-index: -1;
+}
+
+.modal-content > * {
+    position: relative;
+    z-index: 1;
+}
+.header.wide-form {
+    max-width: 500px;
+    width: 100%;
+    padding: 30px 40px;
+}
+@keyframes blurIn {
+    from { filter: blur(10px); opacity: 0; }
+    to { filter: blur(0); opacity: 1; }
+  }
+  
+  @keyframes blurOut {
+    from { filter: blur(0); opacity: 1; }
+    to { filter: blur(10px); opacity: 0; }
+  }
+  
+  .form-container {
+    animation: blurIn 0.5s ease forwards;
+  }
+  
+  .form-container.hidden {
+    animation: blurOut 0.5s ease forwards;
+  }
+  /* Animación de entrada épica */
+@keyframes epicEntrance {
+    0% {
+        transform: scale(0.5) rotateX(90deg);
+        opacity: 0;
+        filter: blur(20px) brightness(2);
+    }
+    20% {
+        transform: scale(1.1) rotateX(0);
+        opacity: 1;
+        filter: blur(0) brightness(3);
+    }
+    40% {
+        transform: scale(1);
+        filter: brightness(2);
+    }
+    60% {
+        filter: brightness(1.5);
+    }
+    100% {
+        filter: brightness(1);
+    }
+}
+
+@keyframes logoEntrance {
+    0% {
+        transform: scale(0) rotate(360deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2) rotate(-10deg);
+        opacity: 1;
+    }
+    70% {
+        transform: scale(0.9) rotate(5deg);
+    }
+    100% {
+        transform: scale(1) rotate(0);
+    }
+}
+
+@keyframes titleEntrance {
+    0% {
+        letter-spacing: 1em;
+        opacity: 0;
+        filter: blur(10px);
+    }
+    50% {
+        letter-spacing: 0.2em;
+        opacity: 0.8;
+        filter: blur(2px);
+    }
+    100% {
+        letter-spacing: normal;
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes buttonEntrance {
+    0% {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Efecto de destello inicial */
+@keyframes flash {
+    0% { background-color: rgba(255,255,255,0); }
+    10% { background-color: rgba(255,255,255,1); }
+    100% { background-color: rgba(255,255,255,0); }
+}
+
+/* Clase para el overlay de entrada */
+.entrance-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, rgba(255,100,50,0.8) 0%, rgba(0,0,0,0) 70%);
+    z-index: 9999;
+    pointer-events: none;
+    animation: flash 1.5s ease-out forwards;
+}
+
+/* Aplicar animaciones a los elementos */
+.container {
+    animation: epicEntrance 2s ease-out forwards;
+}
+
+.logo {
+    animation: logoEntrance 1.5s ease-out 0.5s both;
+}
+
+.main-title {
+    animation: titleEntrance 1.5s ease-out 0.7s both;
+}
+
+.btn-group .btn {
+    opacity: 0;
+    animation: buttonEntrance 0.8s ease-out forwards;
+}
+
+.btn-group .btn:nth-child(1) {
+    animation-delay: 1.2s;
+}
+
+.btn-group .btn:nth-child(2) {
+    animation-delay: 1.4s;
+}
+
+.btn-group .btn:nth-child(3) {
+    animation-delay: 1.6s;
 }

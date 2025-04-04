@@ -14,7 +14,16 @@ const firebaseConfig = {
   firebase.initializeApp(firebaseConfig);
   
   function setupRoomListeners() {
+
+    const isMobile = window.innerWidth <= 768; // Verificar si es móvil
+    const updateIntervale = isMobile ? 2000 : 500;
+    let lastUpdate = 0;
+
     database.ref('rooms').on('value', (snapshot) => {
+        const now = Date.now();
+        if (now - lastUpdate < updateIntervale) return;
+        lastUpdate = now;
+        
         const rooms = snapshot.val() || [];
         
         // Verificar si la sala actual ha cambiado
@@ -90,10 +99,20 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicialización de evento DOMContentLoaded
   document.addEventListener('DOMContentLoaded', function() {
+
+    const isMobile = window.innerWidth <= 768; // Verificar si es móvil
+
+    if (isMobile) {
+        createParticles();
+    }
       checkActiveSession();
       
       // Inicializar la base de datos si está vacía
       initializeDatabase();
+
+      if(isMobile){
+        setTimeout(createParticles, 1000); // Crear partículas después de 1 segundo
+      }
   });
   
   // Función para inicializar la base de datos
@@ -127,9 +146,24 @@ firebase.auth().onAuthStateChanged(async (user) => {
         console.log("Usuario no autenticado");
     }
 }); 
-
+// Añade esto a tu script.js
+function setupMobileFormBehavior() {
+    if (window.innerWidth > 768) return;
+    
+    const formInputs = document.querySelectorAll('#register-form input');
+    
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            // Desplaza el input a la vista cuando el teclado aparece
+            setTimeout(() => {
+                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+    });
+}
 function createParticles() {
-    const particleCount = 500;
+    const isMobile = window.innerWidth <= 768; 
+    const particleCount = isMobile ? 0 : 500; // Menos partículas en móvil
     const body = document.body;
     
     for (let i = 0; i < particleCount; i++) {
@@ -149,7 +183,8 @@ function createParticles() {
         particle.style.opacity = Math.random() * 0.5 + 0.1;
         
         // Duración de animación aleatoria (10s a 30s)
-        const duration = Math.random() * 20 + 10;
+        const duration = isMobile ? Math.random() * 10 + 5 : Math.random() * 20 + 10;
+        // const duration = Math.random() * 20 + 10;
         particle.style.animationDuration = `${duration}s`;
         
         // Retraso de animación aleatorio
@@ -286,6 +321,8 @@ function createParticles() {
       document.getElementById('admin-login-form').classList.add('hidden');
       document.getElementById('main-title').style.display = 'none'; // Ocultar el título principal
       document.querySelector('.header').classList.add('wide-form');
+
+      setupMobileFormBehavior(); // Configurar comportamiento del formulario en móvil
   }
   
   function showAdminLoginForm() {
@@ -1281,7 +1318,17 @@ async function loadUserNotifications(userId) {
         notificationsList.appendChild(notificationItem);
     });
 }
-
+// Carga diferida de elementos no críticos
+window.addEventListener('load', function() {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Retrasa la carga de elementos secundarios
+        setTimeout(() => {
+            // Código para cargar elementos menos importantes
+        }, 1500);
+    }
+});
 function listenForNotifications(userId) {
     // Escuchar nuevas notificaciones en tiempo real
     database.ref(`notifications/${userId}`)
@@ -1345,3 +1392,54 @@ function showBettingControls(roomId) {
     document.getElementById('room-bets-section').prepend(controlsContainer);
 }
 
+// Control de música de fondo
+document.addEventListener('DOMContentLoaded', function() {
+    const music = document.getElementById('background-music');
+    const toggleBtn = document.getElementById('toggle-music');
+    const volumeControl = document.getElementById('volume-control');
+    
+    // Intenta cargar la preferencia de volumen del localStorage
+    const savedVolume = localStorage.getItem('musicVolume');
+    const savedMuted = localStorage.getItem('musicMuted');
+    
+    if (savedVolume) {
+        music.volume = savedVolume;
+        volumeControl.value = savedVolume;
+    }
+    
+    if (savedMuted === 'true') {
+        music.muted = true;
+        toggleBtn.textContent = '🔇';
+    }
+    
+    // Reproducir música (con autoplay bloqueado, necesitamos interacción del usuario)
+    function initMusic() {
+        // Solo intentar reproducir después de una interacción del usuario
+        document.body.addEventListener('click', function firstInteraction() {
+            music.play().catch(e => console.log("Autoplay bloqueado:", e));
+            document.body.removeEventListener('click', firstInteraction);
+        }, { once: true });
+    }
+    
+    // Inicializar música
+    initMusic();
+    
+    // Control de volumen
+    volumeControl.addEventListener('input', function() {
+        music.volume = this.value;
+        localStorage.setItem('musicVolume', this.value);
+    });
+    
+    // Botón mute/unmute
+    toggleBtn.addEventListener('click', function() {
+        music.muted = !music.muted;
+        this.textContent = music.muted ? '🔇' : '🔊';
+        localStorage.setItem('musicMuted', music.muted);
+    });
+    
+    // Manejar cuando la música termina (por si el loop falla)
+    music.addEventListener('ended', function() {
+        this.currentTime = 0;
+        this.play();
+    });
+});

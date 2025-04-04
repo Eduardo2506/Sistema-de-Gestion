@@ -1,4 +1,38 @@
 
+@media (max-width: 768px) {
+    /* Desactiva algunas animaciones pesadas en móviles */
+    body::after {
+        animation: none !important;
+        opacity: 0.1 !important;
+    }
+    
+    .header {
+        animation: none !important;
+    }
+    
+    /* Reduce efectos de sombra */
+    .header, .modal-content {
+        box-shadow: 0 0 10px rgba(255, 51, 51, 0.3) !important;
+    }
+    
+    /* Optimiza las partículas */
+    .particle {
+        animation-duration: 15s !important;
+    }
+    
+    .particle:nth-child(3n) {
+        animation: none !important;
+        opacity: 0.2 !important;
+    }
+    .btn:hover, .btn:active {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    .form-container {
+        animation: none !important;
+    }
+}
 * {
     box-sizing: border-box;
     font-family: Arial, sans-serif;
@@ -1165,4 +1199,93 @@ button:disabled {
 
 .btn-group .btn:nth-child(3) {
     animation-delay: 1.6s;
+}
+@media (max-width: 768px) {
+    body {
+        overflow: auto !important; 
+        height: auto !important;
+    }
+    
+    .container {
+        min-height: auto;
+        padding: 60px 10px;
+        overflow: visible;
+    }
+    
+    .header.wide-form {
+        max-width: 100%;
+        width: 90%;
+        padding: 20px 15px;
+        margin: 20px auto;
+    }
+    
+    .form-container {
+        max-height: none;
+        overflow: visible;
+    }
+    
+    /* Asegura que los inputs sean fáciles de tocar */
+    .input-group input {
+        padding: 12px;
+        font-size: 16px;
+    }
+}
+/* Corrección específica para Safari en iOS */
+@supports (-webkit-touch-callout: none) {
+    .container {
+        height: -webkit-fill-available;
+    }
+    
+    body {
+        position: relative;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+.audio-player {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px 15px;
+    border-radius: 50px;
+    border: 1px solid #ff3333;
+}
+
+.music-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#volume-control {
+    width: 80px;
+    cursor: pointer;
+    accent-color: #ff3333;
+}
+
+/* Ocultar controles en móviles por defecto */
+@media (max-width: 768px) {
+    .audio-player {
+        transform: translateX(calc(100% - 40px));
+        transition: transform 0.3s ease;
+    }
+    
+    .audio-player:hover {
+        transform: translateX(0);
+    }
+    
+    #volume-control {
+        display: none;
+    }
 }
